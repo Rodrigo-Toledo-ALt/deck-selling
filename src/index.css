@@ -5,26 +5,27 @@
 
 @layer base {
   :root {
-    /* Dark mode by default */
-    --background: 220 20% 11%; /* Dark blue-gray background */
+    /* Dark mode by default with new colors */
+    --background: 216 25% 15%; /* #242A38 replacing darker blue-gray */
     --foreground: 213 31% 91%;
 
-    --card: 224 25% 14%; /* Slightly lighter than background */
+    --card: 220 30% 20%; /* #171C29 replacing slightly lighter color */
     --card-foreground: 213 31% 91%;
 
-    --popover: 224 25% 14%;
+    --popover: 220 30% 20%;
     --popover-foreground: 213 31% 91%;
 
-    --primary: 250 95% 76%; /* Purple primary */
+    /* New purple primary colors */
+    --primary: 255 46% 57%; /* #685BC7 */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 20% 19%; /* Slightly lighter than background */
+    --secondary: 220 30% 20%; /* Matching card color */
     --secondary-foreground: 210 40% 98%;
 
     --muted: 220 20% 16%;
     --muted-foreground: 215 16% 65%;
 
-    --accent: 250 95% 76%; /* Same as primary */
+    --accent: 275 70% 67%; /* #A472E3 */
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%; /* Red */
@@ -32,7 +33,7 @@
 
     --border: 215 27% 26%;
     --input: 215 27% 26%;
-    --ring: 250 95% 76%; /* Same as primary */
+    --ring: 285 76% 52%; /* #B827E3 */
 
     --radius: 0.5rem;
   }
@@ -46,8 +47,8 @@
   body {
     @apply bg-background text-foreground;
     background-image: 
-      radial-gradient(hsla(250, 95%, 10%, 0.3) 1px, transparent 0),
-      radial-gradient(hsla(250, 95%, 10%, 0.3) 1px, transparent 0);
+      radial-gradient(hsla(255, 46%, 20%, 0.3) 1px, transparent 0),
+      radial-gradient(hsla(255, 46%, 20%, 0.3) 1px, transparent 0);
     background-size: 40px 40px;
     background-position: 0 0, 20px 20px;
     background-attachment: fixed;
@@ -57,15 +58,15 @@
     @apply text-foreground font-bold;
   }
 
-  /* Custom text gradient for headings */
+  /* Custom text gradient for headings with new colors */
   .text-gradient {
-    @apply bg-gradient-to-r from-violet-400 to-indigo-400 bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-[#685BC7] via-[#A472E3] to-[#B827E3] bg-clip-text text-transparent;
   }
 }
 
 @layer components {
   .card-hover {
-    @apply transition-all duration-300 hover:shadow-[0_0_15px_rgba(139,92,246,0.3)] hover:-translate-y-1;
+    @apply transition-all duration-300 hover:shadow-[0_0_15px_rgba(164,114,227,0.3)] hover:-translate-y-1;
   }
   
   .btn-primary {
@@ -78,5 +79,18 @@
   
   .btn-outline {
     @apply border border-border hover:bg-secondary/50 text-foreground px-4 py-2 rounded-md transition-all duration-200;
+  }
+
+  /* New styles for the color icon buttons */
+  .color-icon-button {
+    @apply flex items-center justify-center w-10 h-10 rounded-full border-2 border-transparent transition-all;
+  }
+  
+  .color-icon-button.active {
+    @apply border-[#A472E3] shadow-[0_0_10px_rgba(164,114,227,0.5)];
+  }
+  
+  .color-icon-button:hover {
+    @apply shadow-[0_0_8px_rgba(164,114,227,0.4)] scale-110;
   }
 }

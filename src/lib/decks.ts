@@ -8,7 +8,8 @@ export interface Card {
 export interface Deck {
   id: string;
   name: string;
-  format: 'Standard' | 'Modern' | 'Commander' | 'Pioneer' | 'Legacy' | 'Pauper';
+  format: 'Commander'; // Only Commander format now
+  archetype?: 'Aggro' | 'Control' | 'Combo' | 'Midrange' | 'Tempo' | 'Stax' | 'Tribal'; // New archetype field
   colors: ('W' | 'U' | 'B' | 'R' | 'G')[];
   description: string;
   imageUrl: string;
@@ -33,14 +34,15 @@ export const formatDeckColors = (colors: ('W' | 'U' | 'B' | 'R' | 'G')[]): strin
   return colors.map(color => colorNames[color]).join('/');
 };
 
-// Sample deck data
+// Updated sample deck data with Commander format and archetypes
 export const decks: Deck[] = [
   {
     id: "burn-modern",
-    name: "Modern Burn",
-    format: "Modern",
+    name: "Purphoros Dragon Tribal",
+    format: "Commander",
+    archetype: "Tribal",
     colors: ["R"],
-    description: "A lightning-fast aggro deck that aims to deal 20 damage as quickly as possible using direct damage spells and aggressive creatures.",
+    description: "A lightning-fast tribal dragon deck that aims to deal massive damage using Purphoros and dragon synergies.",
     imageUrl: "https://images.unsplash.com/photo-1582066278208-7447bfc01a8c?q=80&w=900",
     price: 60,
     featured: true,
@@ -60,10 +62,11 @@ export const decks: Deck[] = [
   },
   {
     id: "dimir-control",
-    name: "Dimir Control",
-    format: "Standard",
+    name: "Scarab God Zombies",
+    format: "Commander",
+    archetype: "Control",
     colors: ["U", "B"],
-    description: "A controlling deck that uses counterspells, removal, and card draw to establish dominance in the late game.",
+    description: "A controlling deck that uses The Scarab God to reanimate zombies while controlling the board with counterspells and removal.",
     imageUrl: "https://images.unsplash.com/photo-1614332287897-cdc485fa562d?q=80&w=900",
     price: 60,
     featured: true,
@@ -83,10 +86,11 @@ export const decks: Deck[] = [
   },
   {
     id: "tron",
-    name: "Mono-Green Tron",
-    format: "Modern",
-    colors: ["G"],
-    description: "A deck focused on assembling the three Urza lands to quickly deploy powerful colorless threats.",
+    name: "Omnath Landfall",
+    format: "Commander",
+    archetype: "Combo",
+    colors: ["G", "U", "R", "W"],
+    description: "A landfall-focused deck with Omnath, Locus of Creation that generates tremendous value from playing lands.",
     imageUrl: "https://images.unsplash.com/photo-1608333963714-b196fe5f44e7?q=80&w=900",
     price: 60,
     featured: true,
@@ -111,10 +115,11 @@ export const decks: Deck[] = [
   },
   {
     id: "azorius-control",
-    name: "Azorius Control",
-    format: "Modern",
+    name: "Brago Blink",
+    format: "Commander",
+    archetype: "Control",
     colors: ["W", "U"],
-    description: "A control deck that uses counterspells, board wipes, and planeswalkers to gain card advantage and win in the late game.",
+    description: "A control deck that uses Brago, King Eternal to blink permanents for value while controlling the game with counterspells and board wipes.",
     imageUrl: "https://images.unsplash.com/photo-1677528778563-ee1ad8be2668?q=80&w=900",
     price: 60,
     cards: [
@@ -136,10 +141,11 @@ export const decks: Deck[] = [
   },
   {
     id: "golgari-midrange",
-    name: "Golgari Midrange",
-    format: "Pioneer",
+    name: "Meren Reanimator",
+    format: "Commander",
+    archetype: "Midrange",
     colors: ["B", "G"],
-    description: "A midrange deck that uses efficient creatures and removal to grind out value and overwhelm the opponent.",
+    description: "A midrange reanimator deck with Meren of Clan Nel Toth that uses the graveyard as a resource to grind out value.",
     imageUrl: "https://images.unsplash.com/photo-1605979399824-ea4afff241d8?q=80&w=900",
     price: 60,
     cards: [
@@ -160,10 +166,11 @@ export const decks: Deck[] = [
   },
   {
     id: "jeskai-control",
-    name: "Jeskai Control",
-    format: "Modern",
+    name: "Kykar Spellslinger",
+    format: "Commander",
+    archetype: "Combo",
     colors: ["W", "U", "R"],
-    description: "A control deck that uses the power of three colors to control the game with counterspells, removal, and powerful planeswalkers.",
+    description: "A spellslinger deck with Kykar, Wind's Fury that creates spirit tokens when you cast noncreature spells, enabling powerful combos.",
     imageUrl: "https://images.unsplash.com/photo-1589998059171-988d887df646?q=80&w=900",
     price: 60,
     cards: [
@@ -197,8 +204,8 @@ export const getDeckById = (id: string): Deck | undefined => {
   return decks.find(deck => deck.id === id);
 };
 
-// Helper function to get decks by format
-export const getDecksByFormat = (format: string): Deck[] => {
-  if (format === "All") return decks;
-  return decks.filter(deck => deck.format === format);
+// Helper function to get decks by archetype
+export const getDecksByArchetype = (archetype: string): Deck[] => {
+  if (archetype === "All") return decks;
+  return decks.filter(deck => deck.archetype === archetype);
 };

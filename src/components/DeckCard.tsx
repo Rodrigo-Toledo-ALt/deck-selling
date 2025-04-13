@@ -2,6 +2,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Deck, formatDeckColors } from '@/lib/decks';
+import { Button } from '@/components/ui/button';
 
 interface DeckCardProps {
   deck: Deck;
@@ -20,7 +21,7 @@ const DeckCard: React.FC<DeckCardProps> = ({ deck }) => {
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex items-end">
             <div className="p-4">
               <h3 className="text-white text-xl font-bold">{deck.name}</h3>
-              <p className="text-white/80 text-sm mt-1">{formatDeckColors(deck.colors)} • {deck.format}</p>
+              <p className="text-white/80 text-sm mt-1">{formatDeckColors(deck.colors)} • {deck.archetype || 'Commander'}</p>
             </div>
           </div>
         </div>
@@ -28,7 +29,7 @@ const DeckCard: React.FC<DeckCardProps> = ({ deck }) => {
           <p className="text-sm text-muted-foreground line-clamp-2">{deck.description}</p>
           <div className="mt-4 flex justify-between items-center">
             <span className="font-bold text-lg">€{deck.price}</span>
-            <button className="btn-primary text-sm px-3 py-1">View Deck</button>
+            <Button size="sm" variant="default">View Deck</Button>
           </div>
         </div>
       </div>

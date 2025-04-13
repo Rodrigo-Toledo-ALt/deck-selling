@@ -3,6 +3,8 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import DeckCard from './DeckCard';
 import { getFeaturedDecks } from '@/lib/decks';
+import { Button } from '@/components/ui/button';
+import { ArrowRight } from 'lucide-react';
 
 const FeaturedDecks = () => {
   const featuredDecks = getFeaturedDecks();
@@ -12,11 +14,11 @@ const FeaturedDecks = () => {
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center mb-12">
           <h2 className="text-3xl font-bold text-gradient">Featured Decks</h2>
-          <Link 
-            to="/catalog" 
-            className="btn-outline"
-          >
-            View All Decks
+          <Link to="/catalog">
+            <Button variant="outline" className="flex items-center gap-2">
+              <span>View All Decks</span>
+              <ArrowRight size={16} />
+            </Button>
           </Link>
         </div>
         
