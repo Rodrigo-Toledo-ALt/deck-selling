@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -115,48 +116,52 @@ const Catalog = () => {
               </div>
             </div>
             
-            <div className="mb-8 space-y-6">
-              <div>
-                <h3 className="font-medium mb-3">Filter by Color</h3>
-                <div className="flex flex-wrap gap-3">
-                  {colorOptions.map(color => (
-                    <button
-                      key={color}
-                      onClick={() => setSelectedColor(color)}
-                      className="focus:outline-none"
-                      aria-label={`Filter by ${color}`}
-                    >
-                      <ColorIcon color={color} selected={selectedColor === color} />
-                    </button>
-                  ))}
+            <div className="mb-8">
+              <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-6">
+                {/* Color Filter - Left Side */}
+                <div className="w-full md:w-1/2">
+                  <h3 className="font-medium mb-3">Filter by Color</h3>
+                  <div className="flex flex-wrap gap-3">
+                    {colorOptions.map(color => (
+                      <button
+                        key={color}
+                        onClick={() => setSelectedColor(color)}
+                        className="focus:outline-none"
+                        aria-label={`Filter by ${color}`}
+                      >
+                        <ColorIcon color={color} selected={selectedColor === color} />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Archetype Filter - Right Side */}
+                <div className="w-full md:w-1/2">
+                  <h3 className="font-medium mb-3">Filter by Archetype</h3>
+                  <ToggleGroup 
+                    type="single" 
+                    value={archetype}
+                    onValueChange={(value) => {
+                      if (value) setArchetype(value);
+                    }}
+                    className="flex flex-wrap gap-2"
+                  >
+                    {archetypeOptions.map(option => (
+                      <ToggleGroupItem 
+                        key={option} 
+                        value={option}
+                        variant={option === 'All' ? 'default' : 'outline'}
+                        className={option === archetype ? 'bg-primary text-white' : ''}
+                      >
+                        {option}
+                      </ToggleGroupItem>
+                    ))}
+                  </ToggleGroup>
                 </div>
               </div>
               
-              <div>
-                <h3 className="font-medium mb-3">Filter by Archetype</h3>
-                <ToggleGroup 
-                  type="single" 
-                  value={archetype}
-                  onValueChange={(value) => {
-                    if (value) setArchetype(value);
-                  }}
-                  className="flex flex-wrap gap-2"
-                >
-                  {archetypeOptions.map(option => (
-                    <ToggleGroupItem 
-                      key={option} 
-                      value={option}
-                      variant={option === 'All' ? 'default' : 'outline'}
-                      className={option === archetype ? 'bg-primary text-white' : ''}
-                    >
-                      {option}
-                    </ToggleGroupItem>
-                  ))}
-                </ToggleGroup>
-              </div>
-              
               {(selectedColor !== 'Any' || archetype !== 'All' || searchQuery) && (
-                <div>
+                <div className="mt-6">
                   <div className="flex items-center gap-2 mb-2">
                     <h3 className="font-medium">Active Filters:</h3>
                     <button

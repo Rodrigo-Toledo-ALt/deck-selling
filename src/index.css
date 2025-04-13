@@ -6,10 +6,10 @@
 @layer base {
   :root {
     /* Dark mode by default with new colors */
-    --background: 216 25% 15%; /* #242A38 replacing darker blue-gray */
+    --background: 216 25% 15%; /* #384157 replacing darker blue-gray */
     --foreground: 213 31% 91%;
 
-    --card: 220 30% 20%; /* #171C29 replacing slightly lighter color */
+    --card: 220 30% 20%; /* #252D41 replacing slightly lighter color */
     --card-foreground: 213 31% 91%;
 
     --popover: 220 30% 20%;
