@@ -23,9 +23,6 @@ const Navbar = () => {
             <Link to="/catalog" className="text-foreground hover:text-primary transition-colors">
               Deck Catalog
             </Link>
-            <Link to="/blog" className="text-foreground hover:text-primary transition-colors">
-              Blog
-            </Link>
             <Link to="/about" className="text-foreground hover:text-primary transition-colors">
               About/FAQ
             </Link>
@@ -63,13 +60,6 @@ const Navbar = () => {
               onClick={() => setIsMenuOpen(false)}
             >
               Deck Catalog
-            </Link>
-            <Link 
-              to="/blog" 
-              className="text-foreground hover:text-primary transition-colors"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Blog
             </Link>
             <Link 
               to="/about" 
