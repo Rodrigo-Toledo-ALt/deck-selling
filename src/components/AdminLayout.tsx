@@ -2,7 +2,7 @@
 import React, { ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { LogOut, LayoutDashboard, Package, Settings } from 'lucide-react';
+import { LogOut, LayoutDashboard, Package, FileText, Settings } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 
 interface AdminLayoutProps {
@@ -29,6 +29,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
   const adminMenuItems = [
     { path: '/admin/dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} /> },
     { path: '/admin/decks', label: 'Decks', icon: <Package size={18} /> },
+    { path: '/admin/blog', label: 'Blog Posts', icon: <FileText size={18} /> },
     { path: '/admin/settings', label: 'Settings', icon: <Settings size={18} /> },
   ];
 
