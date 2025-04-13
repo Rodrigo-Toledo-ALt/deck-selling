@@ -4,6 +4,7 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CalendarDays, User } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 // Sample blog posts data
 const blogPosts = [
