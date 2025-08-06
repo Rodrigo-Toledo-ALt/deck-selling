@@ -8,9 +8,10 @@ import { Button } from '@/components/ui/button';
 import { Search, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import 'mana-font/css/mana.css';
 
 const archetypeOptions = ['All', 'Aggro', 'Control', 'Combo', 'Midrange', 'Tempo', 'Stax', 'Tribal'];
-const colorOptions = ['Any', 'White', 'Blue', 'Black', 'Red', 'Green', 'Multicolor', 'Colorless'];
+const colorOptions = ['Any', 'White', 'Blue', 'Black', 'Red', 'Green', 'Colorless'];
 
 const colorMap: Record<string, string> = {
   'White': 'W',
@@ -21,25 +22,22 @@ const colorMap: Record<string, string> = {
 };
 
 const ColorIcon = ({ color, selected }: { color: string, selected: boolean }) => {
-  const colorClasses: Record<string, string> = {
-    'White': 'bg-white',
-    'Blue': 'bg-blue-500',
-    'Black': 'bg-black',
-    'Red': 'bg-red-600',
-    'Green': 'bg-green-600',
-    'Multicolor': 'bg-gradient-to-br from-white via-red-500 to-green-500',
-    'Colorless': 'bg-gray-400',
-    'Any': 'bg-gradient-to-r from-[#685BC7] via-[#A472E3] to-[#B827E3]',
+  const manaClasses: Record<string, string> = {
+    'White': 'ms ms-w ms-cost',
+    'Blue': 'ms ms-u ms-cost',
+    'Black': 'ms ms-b ms-cost',
+    'Red': 'ms ms-r ms-cost',
+    'Green': 'ms ms-g ms-cost',
+    'Colorless': 'ms ms-c ms-cost',
+    'Any': 'ms ms-infinity ms-cost',
   };
 
   return (
-    <div className={`color-icon-button ${selected ? 'active' : ''}`}>
-      <div 
-        className={`w-7 h-7 rounded-full ${colorClasses[color]} flex items-center justify-center`}
+    <div className={`mana-icon-button ${selected ? 'active' : ''}`}>
+      <i 
+        className={`${manaClasses[color]} text-3xl`}
         title={color}
-      >
-        {color === 'Any' && <span className="text-xs text-white font-bold">All</span>}
-      </div>
+      />
     </div>
   );
 };
@@ -58,9 +56,7 @@ const Catalog = () => {
     }
     
     if (selectedColor !== 'Any') {
-      if (selectedColor === 'Multicolor') {
-        results = results.filter(deck => deck.colors.length > 1);
-      } else if (selectedColor === 'Colorless') {
+      if (selectedColor === 'Colorless') {
         results = results.filter(deck => deck.colors.length === 0);
       } else {
         const colorCode = colorMap[selectedColor];

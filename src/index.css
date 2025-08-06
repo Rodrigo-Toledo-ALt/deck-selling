@@ -81,16 +81,18 @@
     @apply border border-border hover:bg-secondary/50 text-foreground px-4 py-2 rounded-md transition-all duration-200;
   }
 
-  /* New styles for the color icon buttons */
-  .color-icon-button {
-    @apply flex items-center justify-center w-10 h-10 rounded-full border-2 border-transparent transition-all;
+  /* New styles for the mana icon buttons */
+  .mana-icon-button {
+    @apply flex items-center justify-center w-12 h-12 rounded-full border-2 border-transparent transition-all cursor-pointer;
   }
   
-  .color-icon-button.active {
+  .mana-icon-button.active {
     @apply border-[#A472E3] shadow-[0_0_10px_rgba(164,114,227,0.5)];
   }
   
-  .color-icon-button:hover {
+  .mana-icon-button:hover {
     @apply shadow-[0_0_8px_rgba(164,114,227,0.4)] scale-110;
   }
+
+  /* Remove the old color-icon-button styles since we're not using them anymore */
 }
