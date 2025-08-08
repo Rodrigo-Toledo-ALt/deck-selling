@@ -5,36 +5,36 @@
 
 @layer base {
   :root {
-    /* Custom palette: b9b18d-c3a162-7ba696-16163c-aa6b45 */
-    --background: 239 40% 16%; /* #16163c - dark navy */
-    --foreground: 54 23% 74%; /* Light beige for text */
+    /* Magical forest theme inspired by the mystical image */
+    --background: 197 24% 28%; /* #364F59 - base color from user */
+    --foreground: 42 87% 88%; /* Warm cream like moonlight */
 
-    --card: 239 35% 20%; /* Slightly lighter than background */
-    --card-foreground: 54 23% 74%;
+    --card: 197 30% 32%; /* Slightly lighter than background */
+    --card-foreground: 42 87% 88%;
 
-    --popover: 239 35% 20%;
-    --popover-foreground: 54 23% 74%;
+    --popover: 197 30% 32%;
+    --popover-foreground: 42 87% 88%;
 
-    /* Golden brown primary */
-    --primary: 38 43% 58%; /* #c3a162 - golden brown */
-    --primary-foreground: 239 40% 16%; /* Dark navy for contrast */
+    /* Warm amber primary colors like glowing mushrooms */
+    --primary: 25 95% 60%; /* Warm amber/orange glow */
+    --primary-foreground: 197 40% 15%; /* Dark for contrast */
 
-    --secondary: 23 41% 47%; /* #aa6b45 - rust brown */
-    --secondary-foreground: 54 23% 84%;
+    --secondary: 197 35% 22%; /* Darker forest tone */
+    --secondary-foreground: 42 70% 85%;
 
-    --muted: 239 30% 12%;
-    --muted-foreground: 54 15% 55%;
+    --muted: 197 20% 18%;
+    --muted-foreground: 197 15% 65%;
 
-    /* Sage green accent */
-    --accent: 162 28% 58%; /* #7ba696 - sage green */
-    --accent-foreground: 239 40% 16%;
+    /* Mystical teal accent like magical water */
+    --accent: 180 45% 55%; /* Magical teal */
+    --accent-foreground: 197 40% 15%;
 
     --destructive: 0 84% 60%; /* Keep red for warnings */
-    --destructive-foreground: 54 23% 84%;
+    --destructive-foreground: 42 70% 95%;
 
-    --border: 239 25% 25%;
-    --input: 239 25% 25%;
-    --ring: 38 43% 58%; /* Match primary for focus rings */
+    --border: 197 25% 35%;
+    --input: 197 25% 35%;
+    --ring: 25 95% 60%; /* Match primary for focus rings */
 
     --radius: 0.5rem;
   }
@@ -48,8 +48,8 @@
   body {
     @apply bg-background text-foreground;
     background-image: 
-      radial-gradient(hsla(38, 43%, 30%, 0.1) 1px, transparent 0),
-      radial-gradient(hsla(162, 28%, 35%, 0.1) 1px, transparent 0);
+      radial-gradient(hsla(25, 95%, 40%, 0.1) 1px, transparent 0),
+      radial-gradient(hsla(180, 45%, 35%, 0.1) 1px, transparent 0);
     background-size: 60px 60px;
     background-position: 0 0, 30px 30px;
     background-attachment: fixed;
@@ -59,15 +59,15 @@
     @apply text-foreground font-bold;
   }
 
-  /* Custom text gradient using the palette colors */
+  /* Custom text gradient for headings with magical forest colors */
   .text-gradient {
-    @apply bg-gradient-to-r from-[hsl(38,43%,58%)] via-[hsl(162,28%,58%)] to-[hsl(54,23%,74%)] bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-[hsl(25,95%,60%)] via-[hsl(180,45%,55%)] to-[hsl(25,95%,70%)] bg-clip-text text-transparent;
   }
 }
 
 @layer components {
   .card-hover {
-    @apply transition-all duration-300 hover:shadow-[0_0_20px_hsla(38,43%,58%,0.3)] hover:-translate-y-1;
+    @apply transition-all duration-300 hover:shadow-[0_0_20px_hsla(25,95%,60%,0.3)] hover:-translate-y-1;
   }
   
   .btn-primary {
@@ -88,11 +88,11 @@
   }
   
   .mana-icon-button.active {
-    @apply border-primary shadow-[0_0_10px_hsla(38,43%,58%,0.5)];
+    @apply border-primary shadow-[0_0_10px_hsla(25,95%,60%,0.5)];
   }
   
   .mana-icon-button:hover {
-    @apply shadow-[0_0_8px_hsla(38,43%,58%,0.4)] scale-110;
+    @apply shadow-[0_0_8px_hsla(25,95%,60%,0.4)] scale-110;
   }
 
   /* Remove the old color-icon-button styles since we're not using them anymore */
