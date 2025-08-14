@@ -44,7 +44,7 @@ const ColorIcon = ({ color, selected }: { color: string, selected: boolean }) =>
 
 const Catalog = () => {
   const [archetype, setArchetype] = useState('All');
-  const [selectedColor, setSelectedColor] = useState('Any');
+  const [selectedColors, setSelectedColors] = useState<string[]>(['Any']);
   const [filteredDecks, setFilteredDecks] = useState<Deck[]>(decks);
   const [searchQuery, setSearchQuery] = useState('');
   
@@ -55,13 +55,19 @@ const Catalog = () => {
       results = results.filter(deck => deck.archetype === archetype);
     }
     
-    if (selectedColor !== 'Any') {
-      if (selectedColor === 'Colorless') {
-        results = results.filter(deck => deck.colors.length === 0);
-      } else {
-        const colorCode = colorMap[selectedColor];
-        results = results.filter(deck => deck.colors.includes(colorCode as any));
-      }
+    if (!selectedColors.includes('Any')) {
+      results = results.filter(deck => {
+        if (selectedColors.includes('Colorless')) {
+          if (deck.colors.length === 0) return true;
+        }
+        
+        const deckColors = deck.colors;
+        return selectedColors.some(color => {
+          if (color === 'Colorless') return deck.colors.length === 0;
+          const colorCode = colorMap[color];
+          return colorCode && deckColors.includes(colorCode as any);
+        });
+      });
     }
     
     if (searchQuery) {
@@ -74,12 +80,31 @@ const Catalog = () => {
     }
     
     setFilteredDecks(results);
-  }, [archetype, selectedColor, searchQuery]);
+  }, [archetype, selectedColors, searchQuery]);
   
   const resetFilters = () => {
     setArchetype('All');
-    setSelectedColor('Any');
+    setSelectedColors(['Any']);
     setSearchQuery('');
+  };
+
+  const handleColorClick = (color: string) => {
+    if (color === 'Any') {
+      setSelectedColors(['Any']);
+      return;
+    }
+
+    if (selectedColors.includes('Any')) {
+      setSelectedColors([color]);
+      return;
+    }
+
+    if (selectedColors.includes(color)) {
+      const newColors = selectedColors.filter(c => c !== color);
+      setSelectedColors(newColors.length === 0 ? ['Any'] : newColors);
+    } else {
+      setSelectedColors([...selectedColors, color]);
+    }
   };
   
   return (
@@ -121,11 +146,11 @@ const Catalog = () => {
                     {colorOptions.map(color => (
                       <button
                         key={color}
-                        onClick={() => setSelectedColor(color)}
+                        onClick={() => handleColorClick(color)}
                         className="focus:outline-none"
                         aria-label={`Filter by ${color}`}
                       >
-                        <ColorIcon color={color} selected={selectedColor === color} />
+                        <ColorIcon color={color} selected={selectedColors.includes(color)} />
                       </button>
                     ))}
                   </div>
@@ -156,7 +181,7 @@ const Catalog = () => {
                 </div>
               </div>
               
-              {(selectedColor !== 'Any' || archetype !== 'All' || searchQuery) && (
+              {(!selectedColors.includes('Any') || archetype !== 'All' || searchQuery) && (
                 <div className="mt-6">
                   <div className="flex items-center gap-2 mb-2">
                     <h3 className="font-medium">Active Filters:</h3>
@@ -168,14 +193,14 @@ const Catalog = () => {
                     </button>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {selectedColor !== 'Any' && (
-                      <Badge variant="secondary" className="flex items-center gap-1">
-                        Color: {selectedColor}
-                        <button onClick={() => setSelectedColor('Any')}>
+                    {!selectedColors.includes('Any') && selectedColors.map(color => (
+                      <Badge key={color} variant="secondary" className="flex items-center gap-1">
+                        Color: {color}
+                        <button onClick={() => handleColorClick(color)}>
                           <X size={14} className="ml-1" />
                         </button>
                       </Badge>
-                    )}
+                    ))}
                     {archetype !== 'All' && (
                       <Badge variant="secondary" className="flex items-center gap-1">
                         Archetype: {archetype}
