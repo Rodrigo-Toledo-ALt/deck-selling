@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Catalog from "./pages/Catalog";
 import DeckDetail from "./pages/DeckDetail";
+import DeckDetailCF from "./components/DeckDetailCF/DeckDetailCF";
 import About from "./pages/About";
 import Cart from "./pages/Cart";
 import Login from "./pages/Login";
@@ -27,7 +28,7 @@ const App = () => (
           {/* Public Routes */}
           <Route path="/" element={<Index />} />
           <Route path="/catalog" element={<Catalog />} />
-          <Route path="/deck/:id" element={<DeckDetail />} />
+          <Route path="/deck/:id" element={<DeckDetailCF />} />
           <Route path="/about" element={<About />} />
           <Route path="/cart" element={<Cart />} />
           <Route path="/login" element={<Login />} />

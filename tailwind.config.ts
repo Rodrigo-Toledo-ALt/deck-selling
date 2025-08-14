@@ -53,13 +53,26 @@ export default {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
 				},
-				// Custom colors for the MTG theme
+				success: {
+					DEFAULT: 'hsl(var(--success))',
+					foreground: 'hsl(var(--success-foreground))'
+				},
+				warning: {
+					DEFAULT: 'hsl(var(--warning))',
+					foreground: 'hsl(var(--warning-foreground))'
+				},
+				// MTG specific colors from cloudflare-block-page-generator
 				mtg: {
-					blue: '#1E3A8A',
-					purple: '#581C87',
-					red: '#991B1B',
-					black: '#171717',
-					darkblue: '#0F172A',
+					blue: 'hsl(var(--mtg-blue))',
+					white: 'hsl(var(--mtg-white))',
+					black: 'hsl(var(--mtg-black))',
+					red: 'hsl(var(--mtg-red))',
+					green: 'hsl(var(--mtg-green))',
+					colorless: 'hsl(var(--mtg-colorless))'
+				},
+				price: {
+					buy: 'hsl(var(--price-buy))',
+					sell: 'hsl(var(--price-sell))'
 				}
 			},
 			borderRadius: {
