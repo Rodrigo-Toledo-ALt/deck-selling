@@ -57,13 +57,19 @@ const Catalog = () => {
     
     if (!selectedColors.includes('Any')) {
       results = results.filter(deck => {
+        // Handle colorless filter
         if (selectedColors.includes('Colorless')) {
-          if (deck.colors.length === 0) return true;
+          if (selectedColors.length === 1) {
+            return deck.colors.length === 0;
+          } else {
+            // If colorless is selected along with other colors, no deck can match
+            return false;
+          }
         }
         
+        // Check if deck has ALL selected colors
         const deckColors = deck.colors;
-        return selectedColors.some(color => {
-          if (color === 'Colorless') return deck.colors.length === 0;
+        return selectedColors.every(color => {
           const colorCode = colorMap[color];
           return colorCode && deckColors.includes(colorCode as any);
         });
