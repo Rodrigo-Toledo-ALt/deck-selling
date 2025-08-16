@@ -1,0 +1,530 @@
+// Interfaces para tipado
+export interface Card {
+    name: string;
+    quantity: number;
+    manaCost: string;
+    image: string;
+}
+
+export interface DeckData {
+    commander: Card[];
+    creatures: Card[];
+    sorceries: Card[];
+    instants: Card[];
+    artifacts: Card[];
+    enchantments: Card[];
+    lands: Card[];
+    planeswalkers: Card[];
+    sideboard: Card[];
+}
+
+export const deckData: DeckData = {
+    commander: [
+        {
+            name: "Moira Brown, Guide Author",
+            quantity: 1,
+            manaCost: "{1}{R}{W}",
+            image: "https://cards.scryfall.io/normal/front/4/1/418ce6f6-b483-4695-aaf5-e4f7eeb9eb16.jpg?1708742563"
+        }
+    ],
+    creatures: [
+        {
+            name: "Abdel Adrian, Gorion's Ward",
+            quantity: 1,
+            manaCost: "{4}{W}",
+            image: "https://cards.scryfall.io/normal/front/3/9/396f9198-67b6-45d8-91b4-dc853bff9623.jpg?1674134856"
+        },
+        {
+            name: "Agate Instigator",
+            quantity: 1,
+            manaCost: "{1}{R}",
+            image: "https://cards.scryfall.io/normal/front/9/f/9f838603-f7cd-497d-8d2b-d4cca03c1af7.jpg?1721428238"
+        },
+        {
+            name: "Bureau Headmaster",
+            quantity: 1,
+            manaCost: "{R}{W}",
+            image: "https://cards.scryfall.io/normal/front/5/8/58766566-6e19-4f74-bfce-5a61429ffaa9.jpg?1721425695"
+        },
+        {
+            name: "Circuit Mender",
+            quantity: 1,
+            manaCost: "{3}",
+            image: "https://cards.scryfall.io/normal/front/d/e/defaeb68-3f8a-4740-b13f-8c71c7e9c8b4.jpg?1654568662"
+        },
+        {
+            name: "Craig Boone, Novac Guard",
+            quantity: 1,
+            manaCost: "{1}{R}{W}",
+            image: "https://cards.scryfall.io/normal/front/6/3/63d83dad-21c3-4777-84b0-3c775585b5fd.jpg?1708742487"
+        },
+        {
+            name: "Duchess, Wayward Tavernkeep",
+            quantity: 1,
+            manaCost: "{3}{R}",
+            image: "https://cards.scryfall.io/normal/front/3/8/38c0a17f-787b-41ac-8375-d9532dce1f4f.jpg?1708742137"
+        },
+        {
+            name: "ED-E, Lonesome Eyebot",
+            quantity: 1,
+            manaCost: "{3}",
+            image: "https://cards.scryfall.io/normal/front/b/3/b319f0e1-6f18-4fea-9f72-a21da5513aa4.jpg?1708742726"
+        },
+        {
+            name: "Felidar Guardian",
+            quantity: 1,
+            manaCost: "{3}{W}",
+            image: "https://cards.scryfall.io/normal/front/4/4/44bdbed8-5d21-4bf5-8a32-9623b1139c85.jpg?1576381396"
+        },
+        {
+            name: "Flickerwisp",
+            quantity: 1,
+            manaCost: "{1}{W}{W}",
+            image: "https://cards.scryfall.io/normal/front/f/6/f6cccf30-2025-49bb-9b1e-240bbef03f27.jpg?1673146975"
+        },
+        {
+            name: "Fortune, Loyal Steed",
+            quantity: 1,
+            manaCost: "{2}{W}",
+            image: "https://cards.scryfall.io/normal/front/0/6/069294a8-e65a-47af-942f-7e99d18658f2.jpg?1712355270"
+        },
+        {
+            name: "Giggling Skitterspike",
+            quantity: 1,
+            manaCost: "{4}",
+            image: "https://cards.scryfall.io/normal/front/f/b/fba20e7e-9581-4a9b-bdda-5c85d3450d4c.jpg?1726869122"
+        },
+        {
+            name: "Gleeful Arsonist",
+            quantity: 1,
+            manaCost: "{2}{R}",
+            image: "https://cards.scryfall.io/normal/front/b/b/bbb2956c-ef76-4e80-81d4-7f1ce6841d37.jpg?1734096509"
+        },
+        {
+            name: "Grateful Apparition",
+            quantity: 1,
+            manaCost: "{1}{W}",
+            image: "https://cards.scryfall.io/normal/front/5/e/5e1cf888-dd41-4cc2-a16e-3414ef7a78ed.jpg?1715122805"
+        },
+        {
+            name: "Helpful Hunter",
+            quantity: 1,
+            manaCost: "{1}{W}",
+            image: "https://cards.scryfall.io/normal/front/1/b/1b9a0e91-80b5-428f-8f08-931d0631be14.jpg?1731652632"
+        },
+        {
+            name: "Ian the Reckless",
+            quantity: 1,
+            manaCost: "{1}{R}",
+            image: "https://cards.scryfall.io/normal/front/4/c/4cd46b6a-eb20-4ffa-94e0-47d1d2d46087.jpg?1708742155"
+        },
+        {
+            name: "Jor Kadeen, First Goldwarden",
+            quantity: 1,
+            manaCost: "{R}{W}",
+            image: "https://cards.scryfall.io/normal/front/e/7/e7e4d8f7-874d-4b2a-ad23-afab479784ea.jpg?1675957193"
+        },
+        {
+            name: "Lae'zel, Vlaakith's Champion",
+            quantity: 1,
+            manaCost: "{2}{W}",
+            image: "https://cards.scryfall.io/normal/front/1/a/1a93f587-ab72-42da-88c4-31af1c9cdf1b.jpg?1674135140"
+        },
+        {
+            name: "Metastatic Evangel",
+            quantity: 1,
+            manaCost: "{1}{W}",
+            image: "https://cards.scryfall.io/normal/front/7/7/774e115a-c0dc-4901-9a1f-87754304e378.jpg?1719655228"
+        },
+        {
+            name: "Molten Gatekeeper",
+            quantity: 1,
+            manaCost: "{2}{R}",
+            image: "https://cards.scryfall.io/normal/front/9/f/9f5ba065-2806-4e99-a330-168cfe76250f.jpg?1717161477"
+        },
+        {
+            name: "Oltec Matterweaver",
+            quantity: 1,
+            manaCost: "{2}{W}",
+            image: "https://cards.scryfall.io/normal/front/f/4/f4f2a818-9fd1-41db-967e-7d2c9b4e4c2f.jpg?1739804152"
+        },
+        {
+            name: "Overseer of Vault 76",
+            quantity: 1,
+            manaCost: "{2}{W}",
+            image: "https://cards.scryfall.io/normal/front/3/5/35848917-d658-4c3b-b675-4f0185f76dc4.jpg?1708741806"
+        },
+        {
+            name: "Phelia, Exuberant Shepherd",
+            quantity: 1,
+            manaCost: "{1}{W}",
+            image: "https://cards.scryfall.io/normal/front/5/5/55707746-da6e-46e5-a5ca-7ac843fdc38e.jpg?1717011522"
+        },
+        {
+            name: "Puresteel Paladin",
+            quantity: 1,
+            manaCost: "{W}{W}",
+            image: "https://cards.scryfall.io/normal/front/d/8/d8f8a324-006d-4cb8-9816-620a603b4229.jpg?1689995958"
+        },
+        {
+            name: "Restoration Angel",
+            quantity: 1,
+            manaCost: "{3}{W}",
+            image: "https://cards.scryfall.io/normal/front/f/1/f17f85d3-58e5-4128-90c5-98b524256af8.jpg?1736467570"
+        },
+        {
+            name: "Reyav, Master Smith",
+            quantity: 1,
+            manaCost: "{R}{W}",
+            image: "https://cards.scryfall.io/normal/front/9/0/90307dd6-196d-4d51-9b3f-6ff339882d31.jpg?1608911232"
+        },
+        {
+            name: "Sierra, Nuka's Biggest Fan",
+            quantity: 1,
+            manaCost: "{3}{W}",
+            image: "https://cards.scryfall.io/normal/front/6/4/641dd97c-6577-4cab-8672-56f870477961.jpg?1708741860"
+        },
+        {
+            name: "Solemn Simulacrum",
+            quantity: 1,
+            manaCost: "{4}",
+            image: "https://cards.scryfall.io/normal/front/c/b/cb1563a1-c8dc-4fcb-b9c8-e7432235d31e.jpg?1743207347"
+        },
+        {
+            name: "Spirited Companion",
+            quantity: 1,
+            manaCost: "{1}{W}",
+            image: "https://cards.scryfall.io/normal/front/7/e/7e038684-c476-41db-a1b1-57c46e5b4c9a.jpg?1690004251"
+        },
+        {
+            name: "Wall of Omens",
+            quantity: 1,
+            manaCost: "{1}{W}",
+            image: "https://cards.scryfall.io/normal/front/3/d/3d134bb2-17ec-4e65-976e-f06fa983f3fb.jpg?1744479505"
+        },
+        {
+            name: "Werefox Bodyguard",
+            quantity: 1,
+            manaCost: "{1}{W}{W}",
+            image: "https://cards.scryfall.io/normal/front/4/4/4494dfa1-1343-417e-b0c5-2b096442dd0e.jpg?1692936851"
+        },
+        {
+            name: "Witch Enchanter // Witch-Blessed Meadow",
+            quantity: 1,
+            manaCost: "",
+            image: "https://cards.scryfall.io/normal/front/6/2/62061e7c-cf19-4f03-b8fa-2bdba62d6b0b.jpg?1717013161"
+        },
+        {
+            name: "Wyleth, Soul of Steel",
+            quantity: 1,
+            manaCost: "{1}{R}{W}",
+            image: "https://cards.scryfall.io/normal/front/7/c/7c5ada8c-98f2-4f9c-bcb5-dfa4f804fbe6.jpg?1610072970"
+        },
+        {
+            name: "Yes Man, Personal Securitron",
+            quantity: 1,
+            manaCost: "{2}{W}",
+            image: "https://cards.scryfall.io/normal/front/8/e/8e2fac8c-a574-4414-ac68-632fc822ddbb.jpg?1708741895"
+        }
+    ],
+    sorceries: [
+        {
+            name: "Another Round",
+            quantity: 1,
+            manaCost: "{X}{X}{2}{W}",
+            image: "https://cards.scryfall.io/normal/front/4/f/4f8dc511-e307-4412-bb79-375a6077312d.jpg?1712355226"
+        },
+        {
+            name: "Molten Duplication",
+            quantity: 1,
+            manaCost: "{1}{R}",
+            image: "https://cards.scryfall.io/normal/front/f/d/fdbe1ac1-461f-4746-a8d8-6c8dea2c97c6.jpg?1739804204"
+        }
+    ],
+    instants: [
+        {
+            name: "Chaos Warp",
+            quantity: 1,
+            manaCost: "{2}{R}",
+            image: "https://cards.scryfall.io/normal/front/d/4/d4372203-b930-4e6e-a351-e5b4581eb72b.jpg?1752944413"
+        },
+        {
+            name: "Cloudshift",
+            quantity: 1,
+            manaCost: "{W}",
+            image: "https://cards.scryfall.io/normal/front/8/b/8bc7fdf0-3e1e-487c-833d-7c74aa02c0c1.jpg?1600716960"
+        },
+        {
+            name: "Eerie Interlude",
+            quantity: 1,
+            manaCost: "{2}{W}",
+            image: "https://cards.scryfall.io/normal/front/4/b/4ba9f15f-00d2-4797-9228-91b320e85705.jpg?1631233963"
+        },
+        {
+            name: "Ephemerate",
+            quantity: 1,
+            manaCost: "{W}",
+            image: "https://cards.scryfall.io/normal/front/2/d/2da5f3f8-5eef-498f-ba2c-2f3fbc3745aa.jpg?1562201088"
+        },
+        {
+            name: "Flicker of Fate",
+            quantity: 1,
+            manaCost: "{1}{W}",
+            image: "https://cards.scryfall.io/normal/front/5/9/59e19bac-176c-4e37-bfc8-27c00de7c37f.jpg?1581479067"
+        },
+        {
+            name: "Inventory Management",
+            quantity: 1,
+            manaCost: "{R}{W}",
+            image: "https://cards.scryfall.io/normal/front/7/a/7a1acb59-a679-4c6d-8458-8fe5556b9d4d.jpg?1708742526"
+        },
+        {
+            name: "Justiciar's Portal",
+            quantity: 1,
+            manaCost: "{1}{W}",
+            image: "https://cards.scryfall.io/normal/front/1/d/1df611df-3490-4b07-8034-6da9a0122a81.jpg?1584829927"
+        },
+        {
+            name: "Lae'zel's Acrobatics",
+            quantity: 1,
+            manaCost: "{3}{W}",
+            image: "https://cards.scryfall.io/normal/front/0/d/0d102241-4463-437f-b2bb-f574d9dbbd1e.jpg?1674135149"
+        },
+        {
+            name: "Parting Gust",
+            quantity: 1,
+            manaCost: "{W}{W}",
+            image: "https://cards.scryfall.io/normal/front/1/0/1086e826-94b8-4398-8a38-d8eacca56a43.jpg?1721425901"
+        },
+        {
+            name: "Path to Exile",
+            quantity: 1,
+            manaCost: "{W}",
+            image: "https://cards.scryfall.io/normal/front/a/7/a7aed564-2d2d-42c4-bf11-812bc1a0284c.jpg?1712354092"
+        },
+        {
+            name: "Scrollshift",
+            quantity: 1,
+            manaCost: "{2}{W}",
+            image: "https://cards.scryfall.io/normal/front/6/f/6fc278d1-2ea4-4fbc-95cd-a9cd48c3c630.jpg?1682202834"
+        },
+        {
+            name: "Slip On the Ring",
+            quantity: 1,
+            manaCost: "{1}{W}",
+            image: "https://cards.scryfall.io/normal/front/2/e/2e20c2b8-ffe3-4d14-8588-f89719358e3d.jpg?1686967929"
+        },
+        {
+            name: "Swords to Plowshares",
+            quantity: 1,
+            manaCost: "{W}",
+            image: "https://cards.scryfall.io/normal/front/0/e/0e7ff4dc-af63-4342-9a44-d059e62bd14c.jpg?1752944384"
+        }
+    ],
+    artifacts: [
+        {
+            name: "Arcane Signet",
+            quantity: 1,
+            manaCost: "{2}",
+            image: "https://cards.scryfall.io/normal/front/3/d/3d994115-378d-4685-a5dc-e448831da434.jpg?1752944447"
+        },
+        {
+            name: "Blade of Selves",
+            quantity: 1,
+            manaCost: "{2}",
+            image: "https://cards.scryfall.io/normal/front/d/0/d0ca6a34-724f-47bb-b12d-c4998ffc3bf7.jpg?1743207279"
+        },
+        {
+            name: "Boros Signet",
+            quantity: 1,
+            manaCost: "{2}",
+            image: "https://cards.scryfall.io/normal/front/4/9/49c37c0e-d363-4033-a069-710241cd9923.jpg?1743207285"
+        },
+        {
+            name: "Conjurer's Closet",
+            quantity: 1,
+            manaCost: "{5}",
+            image: "https://cards.scryfall.io/normal/front/a/f/af2115e4-009e-4432-99bb-05e844bc18b6.jpg?1736468593"
+        },
+        {
+            name: "Recon Craft Theta",
+            quantity: 1,
+            manaCost: "{4}",
+            image: "https://cards.scryfall.io/normal/front/2/1/21aa59d3-e786-4ba0-9802-01b57597cda2.jpg?1708742768"
+        },
+        {
+            name: "Sol Ring",
+            quantity: 1,
+            manaCost: "{1}",
+            image: "https://cards.scryfall.io/normal/front/e/e/ee6e5a35-fe21-4dee-b0ef-a8f2841511ad.jpg?1752944480"
+        },
+        {
+            name: "Sword of Hearth and Home",
+            quantity: 1,
+            manaCost: "{3}",
+            image: "https://cards.scryfall.io/normal/front/a/1/a16fabbe-4557-4067-b882-f2e5dbd8b458.jpg?1626099357"
+        },
+        {
+            name: "Sword of the Animist",
+            quantity: 1,
+            manaCost: "{2}",
+            image: "https://cards.scryfall.io/normal/front/6/4/64401acc-d080-4763-b67a-95164c11c69e.jpg?1689999846"
+        }
+    ],
+    enchantments: [
+        {
+            name: "Luminarch Ascension",
+            quantity: 1,
+            manaCost: "{1}{W}",
+            image: "https://cards.scryfall.io/normal/front/b/3/b3770d86-4496-4c06-aab1-2917cfec100e.jpg?1562439791"
+        },
+        {
+            name: "Quest for Pure Flame",
+            quantity: 1,
+            manaCost: "{R}",
+            image: "https://cards.scryfall.io/normal/front/7/b/7b43ac5a-21b9-4abe-b8be-86b9056ad70d.jpg?1562613647"
+        },
+        {
+            name: "Quest for the Goblin Lord",
+            quantity: 1,
+            manaCost: "{R}",
+            image: "https://cards.scryfall.io/normal/front/e/2/e23adb09-d216-47f5-a7d4-cb6a2ce48ada.jpg?1562298094"
+        },
+        {
+            name: "Quest for the Holy Relic",
+            quantity: 1,
+            manaCost: "{W}",
+            image: "https://cards.scryfall.io/normal/front/0/0/00d6b8bb-ec11-4ded-a7fc-fa4ea0bb96cc.jpg?1562609297"
+        },
+        {
+            name: "Sunspring Expedition",
+            quantity: 1,
+            manaCost: "{W}",
+            image: "https://cards.scryfall.io/normal/front/b/0/b0811c4c-9e91-4785-b3d2-e4221c5d92d8.jpg?1562615535"
+        },
+        {
+            name: "Teleportation Circle",
+            quantity: 1,
+            manaCost: "{3}{W}",
+            image: "https://cards.scryfall.io/normal/front/9/0/90140bc0-4a9c-4422-b07c-3400c7ccde56.jpg?1627702592"
+        },
+        {
+            name: "Windcrag Siege",
+            quantity: 1,
+            manaCost: "{1}{R}{W}",
+            image: "https://cards.scryfall.io/normal/front/3/1/31a8329b-23a1-4c49-a579-a5da8d01435a.jpg?1743204930"
+        },
+        {
+            name: "Zektar Shrine Expedition",
+            quantity: 1,
+            manaCost: "{1}{R}",
+            image: "https://cards.scryfall.io/normal/front/f/1/f12d2c01-0ef2-40e6-8c7d-8512e2c8c074.jpg?1562618196"
+        }
+    ],
+    lands: [
+        {
+            name: "Arid Mesa",
+            quantity: 1,
+            manaCost: "",
+            image: "https://cards.scryfall.io/normal/front/2/5/25ac5405-df7b-4097-914a-022cb18e20d4.jpg?1738703645"
+        },
+        {
+            name: "Battlefield Forge",
+            quantity: 1,
+            manaCost: "",
+            image: "https://cards.scryfall.io/normal/front/6/e/6ef04c87-8d34-49af-8b79-72e460daf71c.jpg?1752944487"
+        },
+        {
+            name: "Clifftop Retreat",
+            quantity: 1,
+            manaCost: "",
+            image: "https://cards.scryfall.io/normal/front/f/7/f795f6fd-eac9-4c6d-90f5-bc475c8d69ac.jpg?1752945284"
+        },
+        {
+            name: "Command Tower",
+            quantity: 1,
+            manaCost: "",
+            image: "https://cards.scryfall.io/normal/front/8/5/85eb4b03-305b-45a4-82e5-5fcd586cc744.jpg?1753246584"
+        },
+        {
+            name: "Furycalm Snarl",
+            quantity: 1,
+            manaCost: "",
+            image: "https://cards.scryfall.io/normal/front/b/d/bdb27a86-0fbd-4123-9c8e-630c855d5e9e.jpg?1706241163"
+        },
+        {
+            name: "Inspiring Vantage",
+            quantity: 1,
+            manaCost: "",
+            image: "https://cards.scryfall.io/normal/front/8/5/85df6b6a-2dcf-4828-a4a8-e07d52e1fddd.jpg?1723149865"
+        },
+        {
+            name: "Karn's Bastion",
+            quantity: 1,
+            manaCost: "",
+            image: "https://cards.scryfall.io/normal/front/2/2/22017ec2-3552-4865-af76-dba042b141f5.jpg?1752945351"
+        },
+        {
+            name: "Mountain",
+            quantity: 10,
+            manaCost: "",
+            image: "https://cards.scryfall.io/normal/front/b/0/b044630d-50e7-431b-8e91-bd53e967f594.jpg?1753472303"
+        },
+        {
+            name: "Myriad Landscape",
+            quantity: 1,
+            manaCost: "",
+            image: "https://cards.scryfall.io/normal/front/a/0/a0e2098f-1d94-491a-a7e9-a45a9f69e3a8.jpg?1752945395"
+        },
+        {
+            name: "Needleverge Pathway // Pillarverge Pathway",
+            quantity: 1,
+            manaCost: "",
+            image: "https://cards.scryfall.io/normal/front/6/5/6559047e-6ede-4815-a3a0-389062094f9d.jpg?1669839412"
+        },
+        {
+            name: "Plains",
+            quantity: 10,
+            manaCost: "",
+            image: "https://cards.scryfall.io/normal/front/1/1/1164f7ec-7b2f-4cc9-90bb-7eaaa331b4cd.jpg?1753472168"
+        },
+        {
+            name: "Rugged Prairie",
+            quantity: 1,
+            manaCost: "",
+            image: "https://cards.scryfall.io/normal/front/8/1/81d91591-8d44-40cc-9941-c455f9722958.jpg?1752945461"
+        },
+        {
+            name: "Sacred Foundry",
+            quantity: 1,
+            manaCost: "",
+            image: "https://cards.scryfall.io/normal/front/8/b/8b4e2642-3c87-4708-b9b4-2e7f7359ac7d.jpg?1752947600"
+        },
+        {
+            name: "Spectator Seating",
+            quantity: 1,
+            manaCost: "",
+            image: "https://cards.scryfall.io/normal/front/d/c/dcf3140f-d5c8-45ff-8be4-622b1a129b3d.jpg?1689999977"
+        },
+        {
+            name: "Sunbaked Canyon",
+            quantity: 1,
+            manaCost: "",
+            image: "https://cards.scryfall.io/normal/front/c/3/c36820fa-ee86-4206-9a0d-737a67cf5208.jpg?1562202603"
+        },
+        {
+            name: "Sunbillow Verge",
+            quantity: 1,
+            manaCost: "",
+            image: "https://cards.scryfall.io/normal/front/9/4/94ed132f-b818-4dbf-9b4a-e5acb067e0a4.jpg?1738356948"
+        },
+        {
+            name: "Sundown Pass",
+            quantity: 1,
+            manaCost: "",
+            image: "https://cards.scryfall.io/normal/front/1/2/12ca1b4f-3e98-4ad4-93fe-c4c2de09aa58.jpg?1736468697"
+        }
+    ],
+    planeswalkers: [],
+    sideboard: []
+};

@@ -1,159 +1,115 @@
-
 import React, { useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
-import { getDeckById, formatDeckColors, colorNames } from '@/lib/decks';
-import { useToast } from "@/components/ui/use-toast";
-import { ShoppingCart, AlertCircle } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import CardList from "@/components/CardList";
+import { renderManaCost } from "@/lib/methods";
 
-// Helper component for color symbols
-const ColorSymbol = ({ color }: { color: string }) => {
-  const bgColor = {
-    W: 'bg-yellow-200',
-    U: 'bg-blue-500',
-    B: 'bg-gray-800',
-    R: 'bg-red-500',
-    G: 'bg-green-500'
-  }[color] || 'bg-gray-400';
-  
-  return (
-    <span className={`inline-block ${bgColor} rounded-full w-6 h-6 mx-0.5 border border-white/20`}></span>
-  );
-};
+import { deckData } from "@/lib/deckData";
+import Navbar from "@/components/Navbar.tsx";
+import Footer from "@/components/Footer.tsx";
 
-const DeckDetail = () => {
-  const { id } = useParams<{ id: string }>();
-  const deck = getDeckById(id || '');
-  const navigate = useNavigate();
-  const { toast } = useToast();
-  const [isAdding, setIsAdding] = useState(false);
-  
-  const handleAddToCart = () => {
-    setIsAdding(true);
-    
-    // Simulate adding to cart with delay
-    setTimeout(() => {
-      setIsAdding(false);
-      toast({
-        title: "Added to cart",
-        description: `${deck?.name} has been added to your cart`,
-        duration: 3000,
-      });
-      
-      // Optionally navigate to cart
-      // navigate('/cart');
-    }, 800);
-  };
-  
-  if (!deck) {
+const Index = () => {
+    const [currentCard, setCurrentCard] = useState(deckData.commander[0]);
+
+    const commanderImage = deckData.commander[0].image;
+
+    // Sample deck data
+
+    const sections = [ // Define the sections of the deck for filter the tags to appear in the UI
+        { title: "Commander", cards: deckData.commander },
+        { title: "Planeswalkers", cards: deckData.planeswalkers },
+        { title: "Creatures", cards: deckData.creatures },
+        { title: "Sorceries", cards: deckData.sorceries },
+        { title: "Instants", cards: deckData.instants },
+        { title: "Artifacts", cards: deckData.artifacts },
+        { title: "Lands", cards: deckData.lands },
+        { title: "Sideboard", cards: deckData.sideboard },
+    ];
+
+    const handleCardHover = (card) => {
+        setCurrentCard(card);
+    };
+
+    const handleCardLeave = () => {
+        setCurrentCard(deckData.commander[0]);
+    };
+
     return (
-      <div className="flex flex-col min-h-screen">
-        <Navbar />
-        <main className="flex-grow container mx-auto px-4 py-16">
-          <div className="flex flex-col items-center justify-center">
-            <AlertCircle className="w-16 h-16 text-muted-foreground mb-4" />
-            <h1 className="text-3xl font-bold mb-4">Deck Not Found</h1>
-            <p className="text-muted-foreground mb-6">The deck you're looking for doesn't exist or has been removed.</p>
-            <Link to="/catalog" className="btn-primary">
-              Browse Decks
-            </Link>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
-  
-  return (
-    <div className="flex flex-col min-h-screen">
-      <Navbar />
-      <main className="flex-grow">
-        <div className="container mx-auto px-4 py-12">
-          <Link to="/catalog" className="text-primary hover:underline mb-6 inline-block">
-            ← Back to Catalog
-          </Link>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-            {/* Deck Image and Info */}
-            <div>
-              <div className="rounded-lg overflow-hidden border border-border mb-6">
-                <img 
-                  src={deck.imageUrl} 
-                  alt={deck.name} 
-                  className="w-full h-[400px] object-cover"
-                />
-              </div>
-              
-              <h1 className="text-3xl font-bold mb-2">{deck.name}</h1>
-              
-              <div className="flex items-center mb-4">
-                {deck.colors.map(color => (
-                  <ColorSymbol key={color} color={color} />
-                ))}
-                <span className="ml-2 text-muted-foreground">
-                  {formatDeckColors(deck.colors)} • {deck.format}
-                </span>
-              </div>
-              
-              <p className="text-lg mb-6 text-foreground/90">{deck.description}</p>
-              
-              <div className="bg-card p-6 rounded-lg border border-border mb-6">
-                <div className="flex justify-between items-center mb-4">
-                  <span className="text-xl font-bold">€{deck.price}</span>
-                  <span className="text-green-500">In Stock</span>
-                </div>
-                
-                <button 
-                  className={`w-full btn-primary flex items-center justify-center ${isAdding ? 'opacity-80' : ''}`}
-                  onClick={handleAddToCart}
-                  disabled={isAdding}
-                >
-                  <ShoppingCart className="w-5 h-5 mr-2" />
-                  {isAdding ? 'Adding...' : 'Add to Cart'}
-                </button>
-              </div>
-              
-              <div className="bg-card p-6 rounded-lg border border-border">
-                <h3 className="text-xl font-bold mb-4">Deck Details</h3>
-                <ul className="space-y-2">
-                  <li className="flex justify-between">
-                    <span className="text-muted-foreground">Format:</span>
-                    <span>{deck.format}</span>
-                  </li>
-                  <li className="flex justify-between">
-                    <span className="text-muted-foreground">Colors:</span>
-                    <span>{formatDeckColors(deck.colors)}</span>
-                  </li>
-                  <li className="flex justify-between">
-                    <span className="text-muted-foreground">Card Count:</span>
-                    <span>{deck.cards.reduce((acc, card) => acc + card.quantity, 0)}</span>
-                  </li>
-                </ul>
-              </div>
-            </div>
-            
-            {/* Card List */}
-            <div>
-              <div className="bg-card p-6 rounded-lg border border-border">
-                <h2 className="text-2xl font-bold mb-6">Card List</h2>
-                
-                <div className="flex flex-col divide-y divide-border">
-                  {deck.cards.map((card, index) => (
-                    <div key={index} className="py-3 flex justify-between">
-                      <span>{card.name}</span>
-                      <span className="text-muted-foreground">x{card.quantity}</span>
+        <div className="min-h-screen  bg-background/95 text-foreground">
+
+            <Navbar />
+            {/* Main Content */}
+            <main className="container mx-auto px-4 py-6">
+                <div className="grid lg:grid-cols-4 gap-6">
+                    {/* Left Column - Card Display */}
+                    <div className="lg:col-span-1">
+                        <Card className="bg-transparent border-0 sticky top-4">
+                            <CardHeader className="text-center">
+                                <div className="relative mx-auto w-full max-w-64 aspect-[5/7] rounded-lg overflow-hidden border-2 border-border shadow-lg">
+                                    <img
+                                        src={currentCard.image}
+                                        alt={currentCard.name}
+                                        className="w-full h-full object-cover transition-all duration-300"
+                                    />
+                                </div>
+                                <CardTitle className="text-xl mt-4">{currentCard.name}</CardTitle>
+                                <CardDescription>
+                                    {/* Aquí podrías mostrar el tipo si lo tienes, o un placeholder */}
+                                    Legendary Creature — Human Wizard
+                                </CardDescription>
+                                <div className="flex justify-center gap-2 mt-2">
+                                    {renderManaCost(currentCard.manaCost)}
+                                </div>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="space-y-3">
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-sm font-medium">Buy Price:</span>
+                                        <span className="text-price-buy font-bold">$24.99</span>
+                                    </div>
+                                    <div className="flex justify-center mt-4">
+                                        <Button size="sm" className="bg-price-buy hover:bg-price-buy/90 w-32">
+                                            Buy
+                                        </Button>
+
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
                     </div>
-                  ))}
+
+                    {/* Right Columns - Card Lists */}
+                    <div className="lg:col-span-3">
+                        <div className="columns-1 sm:columns-2 lg:columns-3 gap-4">
+                            {[
+                                { title: "Commander", cards: deckData.commander },
+                                { title: "Planeswalkers", cards: deckData.planeswalkers },
+                                { title: "Creatures", cards: deckData.creatures },
+                                { title: "Sorceries", cards: deckData.sorceries },
+                                { title: "Instants", cards: deckData.instants },
+                                { title: "Artifacts", cards: deckData.artifacts },
+                                { title: "Lands", cards: deckData.lands },
+                                { title: "Sideboard", cards: deckData.sideboard },
+                            ]
+                                .filter(section => section.cards && section.cards.length > 0)
+                                .map(section => (
+                                    <div key={section.title} className=" break-inside-avoid">
+                                        <CardList
+                                            title={section.title}
+                                            cards={section.cards}
+                                            onCardHover={handleCardHover}
+                                            onCardLeave={handleCardLeave}
+                                        />
+                                    </div>
+                                ))}
+                        </div>
+                    </div>
                 </div>
-              </div>
-            </div>
-          </div>
+            </main>
+            <Footer />
         </div>
-      </main>
-      <Footer />
-    </div>
-  );
+    );
 };
 
-export default DeckDetail;
+export default Index;
