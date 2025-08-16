@@ -8,6 +8,7 @@ import { renderManaCost } from "@/lib/methods";
 import { deckData } from "@/lib/deckData";
 import Navbar from "@/components/Navbar.tsx";
 import Footer from "@/components/Footer.tsx";
+import DeckHeader from "@/components/DeckDetailCF/DeckHeader.tsx";
 
 const Index = () => {
     const [currentCard, setCurrentCard] = useState(deckData.commander[0]);
@@ -40,13 +41,21 @@ const Index = () => {
 
             <Navbar />
             {/* Main Content */}
-            <main className="container mx-auto px-4 py-6">
-                <div className="grid lg:grid-cols-4 gap-6">
+            <main className=" mx-auto px-4 py-6">
+
+                {/* Component shaded with a gradient background with commander photo */}
+               <DeckHeader>
+
+               </DeckHeader>
+
+
+                <div className="grid lg:grid-cols-4 gap-6 ">
                     {/* Left Column - Card Display */}
                     <div className="lg:col-span-1">
-                        <Card className="bg-transparent border-0 sticky top-4">
+                        <Card className="bg-secondary border-0 sticky top-20 mt-4">
                             <CardHeader className="text-center">
-                                <div className="relative mx-auto w-full max-w-64 aspect-[5/7] rounded-lg overflow-hidden border-2 border-border shadow-lg">
+                                <div
+                                    className="relative mx-auto w-full max-w-64 aspect-[5/7] rounded-lg overflow-hidden border-2 border-border shadow-lg">
                                     <img
                                         src={currentCard.image}
                                         alt={currentCard.name}
@@ -81,16 +90,16 @@ const Index = () => {
 
                     {/* Right Columns - Card Lists */}
                     <div className="lg:col-span-3">
-                        <div className="columns-1 sm:columns-2 lg:columns-3 gap-4">
+                        <div className="columns-1 sm:columns-2 lg:columns-3 gap-4 ">
                             {[
-                                { title: "Commander", cards: deckData.commander },
-                                { title: "Planeswalkers", cards: deckData.planeswalkers },
-                                { title: "Creatures", cards: deckData.creatures },
-                                { title: "Sorceries", cards: deckData.sorceries },
-                                { title: "Instants", cards: deckData.instants },
-                                { title: "Artifacts", cards: deckData.artifacts },
-                                { title: "Lands", cards: deckData.lands },
-                                { title: "Sideboard", cards: deckData.sideboard },
+                                {title: "Commander", cards: deckData.commander},
+                                {title: "Planeswalkers", cards: deckData.planeswalkers},
+                                {title: "Creatures", cards: deckData.creatures},
+                                {title: "Sorceries", cards: deckData.sorceries},
+                                {title: "Instants", cards: deckData.instants},
+                                {title: "Artifacts", cards: deckData.artifacts},
+                                {title: "Lands", cards: deckData.lands},
+                                {title: "Sideboard", cards: deckData.sideboard},
                             ]
                                 .filter(section => section.cards && section.cards.length > 0)
                                 .map(section => (
@@ -107,7 +116,7 @@ const Index = () => {
                     </div>
                 </div>
             </main>
-            <Footer />
+            <Footer/>
         </div>
     );
 };

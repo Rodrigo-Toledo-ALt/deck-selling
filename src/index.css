@@ -103,6 +103,7 @@
   .text-gradient {
     @apply bg-gradient-to-r from-[hsl(25,95%,60%)] via-[hsl(180,45%,55%)] to-[hsl(25,95%,70%)] bg-clip-text text-transparent;
   }
+
 }
 
 @layer components {
