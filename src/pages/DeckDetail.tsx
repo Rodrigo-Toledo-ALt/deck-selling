@@ -41,9 +41,10 @@ const Index = () => {
 
             <Navbar />
             {/* Main Content */}
-            <main className=" mx-auto px-4 py-6">
+            <main className=" mx-auto px-4 py-6 w-full">
 
                 {/* Component shaded with a gradient background with commander photo */}
+
                <DeckHeader>
 
                </DeckHeader>

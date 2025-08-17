@@ -14,6 +14,7 @@ import Register from "./pages/Register";
 import DeckManagement from "./pages/admin/DeckManagement";
 import DeckForm from "./pages/admin/DeckForm";
 import NotFound from "./pages/NotFound";
+import ScrollToTop from "@/components/ScrollToTop.tsx";
 
 const queryClient = new QueryClient();
 
@@ -23,6 +24,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <ScrollToTop behavior="auto" />
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<Index />} />

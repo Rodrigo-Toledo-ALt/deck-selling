@@ -3,8 +3,13 @@ import { MessageCircle, Heart, Eye, Share2 } from 'lucide-react';
 
 const DeckHeader: React.FC = () => {
     return (
-        <div className="relative w-full min-h-[200px]  overflow-hidden bg-[url('/src/lib/commanderExample.jpeg')] bg-no-repeat bg-cover ">
+        <div className="relative w-full min-h-[200px]  overflow-hidden bg-[url('/src/lib/commanderExample.jpeg')] bg-no-repeat bg-cover rounded-lg">
+            {/* Overlay púrpura - ESTO ES LO QUE TE FALTA */}
+            <div className="absolute inset-0 z-10 bg-gradient-to-r from-secondary via-secondary to-slate-800/10"></div>
             {/* Background decorative elements */}
+
+
+            {/* Replace with your image path [ESTO SE LE DEBE PASAR AL COMPONENTE COMO PARÁMETRO]*/}
             <div className=" absolute left-1/2 top-0 w-1/2 h-full overflow-hidden z-0">
                 <img
                     src="/src/lib/commanderExample.jpeg"
@@ -26,7 +31,7 @@ const DeckHeader: React.FC = () => {
 
                 {/* Main title */}
                 <h1 className="text-5xl font-bold text-gradient mb-4 tracking-tight ">
-                    Demon Ascendancy
+                    Moira cachonda
                 </h1>
 
                 {/* Tags */}
