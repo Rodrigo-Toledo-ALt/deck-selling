@@ -24,7 +24,8 @@ export const useProducts = () => {
       if (error) throw error
       setProducts(data || [])
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
+      setError(err instanceof Error ? err.message : 'Failed to fetch products')
+      console.error('Error fetching products:', err)
     } finally {
       setLoading(false)
     }
@@ -41,8 +42,59 @@ export const useProducts = () => {
       if (error) throw error
       return data
     } catch (err) {
-      console.error('Error fetching product:', err)
+      console.error('Error fetching product by ID:', err)
       return null
+    }
+  }
+
+  const createProduct = async (product: Database['public']['Tables']['products']['Insert']) => {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .insert(product)
+        .select()
+        .single()
+
+      if (error) throw error
+      await fetchProducts() // Refresh the list
+      return { data, error: null }
+    } catch (err) {
+      console.error('Error creating product:', err)
+      return { data: null, error: err instanceof Error ? err.message : 'Failed to create product' }
+    }
+  }
+
+  const updateProduct = async (id: string, updates: Database['public']['Tables']['products']['Update']) => {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single()
+
+      if (error) throw error
+      await fetchProducts() // Refresh the list
+      return { data, error: null }
+    } catch (err) {
+      console.error('Error updating product:', err)
+      return { data: null, error: err instanceof Error ? err.message : 'Failed to update product' }
+    }
+  }
+
+  const deleteProduct = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', id)
+
+      if (error) throw error
+      await fetchProducts() // Refresh the list
+      return { error: null }
+    } catch (err) {
+      console.error('Error deleting product:', err)
+      return { error: err instanceof Error ? err.message : 'Failed to delete product' }
     }
   }
 
@@ -51,7 +103,10 @@ export const useProducts = () => {
     loading,
     error,
     fetchProducts,
-    getProductById
+    getProductById,
+    createProduct,
+    updateProduct,
+    deleteProduct
   }
 }
 
@@ -78,24 +133,39 @@ export const useAuth = () => {
   }, [])
 
   const signUp = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-    })
-    return { data, error }
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+      })
+      return { data, error }
+    } catch (err) {
+      console.error('Sign up error:', err)
+      return { data: null, error: err }
+    }
   }
 
   const signIn = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
-    return { data, error }
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+      return { data, error }
+    } catch (err) {
+      console.error('Sign in error:', err)
+      return { data: null, error: err }
+    }
   }
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut()
-    return { error }
+    try {
+      const { error } = await supabase.auth.signOut()
+      return { error }
+    } catch (err) {
+      console.error('Sign out error:', err)
+      return { error: err }
+    }
   }
 
   return {

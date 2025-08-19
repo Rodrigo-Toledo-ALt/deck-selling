@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import CardList from "@/components/CardList";
 import { renderManaCost } from "@/lib/methods";
+import { useProducts } from "@/hooks/useSupabase";
+import { adaptDatabaseToDeckData } from "@/utils/deckAdapter";
 
 import { deckData } from "@/lib/deckData";
 import Navbar from "@/components/Navbar.tsx";
@@ -11,21 +14,48 @@ import Footer from "@/components/Footer.tsx";
 import DeckHeader from "@/components/DeckDetailCF/DeckHeader.tsx";
 
 const Index = () => {
+    const { id } = useParams<{ id: string }>();
+    const { getProductById } = useProducts();
     const [currentCard, setCurrentCard] = useState(deckData.commander[0]);
+    const [product, setProduct] = useState(null);
+    const [loading, setLoading] = useState(true);
+
+    React.useEffect(() => {
+        const fetchProduct = async () => {
+            if (id) {
+                setLoading(true);
+                const productData = await getProductById(id);
+                if (productData) {
+                    setProduct(productData);
+                    // Adapt the database data to the expected format
+                    const adaptedData = adaptDatabaseToDeckData(productData);
+                    if (adaptedData.commander.length > 0) {
+                        setCurrentCard(adaptedData.commander[0]);
+                    }
+                }
+                setLoading(false);
+            }
+        };
+
+        fetchProduct();
+    }, [id, getProductById]);
+
+    // Use adapted data if product exists, otherwise fallback to static data
+    const displayData = product ? adaptDatabaseToDeckData(product) : deckData;
 
     const commanderImage = deckData.commander[0].image;
 
     // Sample deck data
 
     const sections = [ // Define the sections of the deck for filter the tags to appear in the UI
-        { title: "Commander", cards: deckData.commander },
-        { title: "Planeswalkers", cards: deckData.planeswalkers },
-        { title: "Creatures", cards: deckData.creatures },
-        { title: "Sorceries", cards: deckData.sorceries },
-        { title: "Instants", cards: deckData.instants },
-        { title: "Artifacts", cards: deckData.artifacts },
-        { title: "Lands", cards: deckData.lands },
-        { title: "Sideboard", cards: deckData.sideboard },
+        { title: "Commander", cards: displayData.commander },
+        { title: "Planeswalkers", cards: displayData.planeswalkers },
+        { title: "Creatures", cards: displayData.creatures },
+        { title: "Sorceries", cards: displayData.sorceries },
+        { title: "Instants", cards: displayData.instants },
+        { title: "Artifacts", cards: displayData.artifacts },
+        { title: "Lands", cards: displayData.lands },
+        { title: "Sideboard", cards: displayData.sideboard },
     ];
 
     const handleCardHover = (card) => {
@@ -33,8 +63,25 @@ const Index = () => {
     };
 
     const handleCardLeave = () => {
-        setCurrentCard(deckData.commander[0]);
+        setCurrentCard(displayData.commander[0] || deckData.commander[0]);
     };
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-background/95 text-foreground">
+                <Navbar />
+                <main className="mx-auto px-4 py-6 w-full">
+                    <div className="flex items-center justify-center min-h-[400px]">
+                        <div className="text-center">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+                            <p className="text-muted-foreground">Loading deck...</p>
+                        </div>
+                    </div>
+                </main>
+                <Footer />
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen  bg-background/95 text-foreground">
@@ -93,14 +140,14 @@ const Index = () => {
                     <div className="lg:col-span-3">
                         <div className="columns-1 sm:columns-2 lg:columns-3 gap-4 ">
                             {[
-                                {title: "Commander", cards: deckData.commander},
-                                {title: "Planeswalkers", cards: deckData.planeswalkers},
-                                {title: "Creatures", cards: deckData.creatures},
-                                {title: "Sorceries", cards: deckData.sorceries},
-                                {title: "Instants", cards: deckData.instants},
-                                {title: "Artifacts", cards: deckData.artifacts},
-                                {title: "Lands", cards: deckData.lands},
-                                {title: "Sideboard", cards: deckData.sideboard},
+                                {title: "Commander", cards: displayData.commander},
+                                {title: "Planeswalkers", cards: displayData.planeswalkers},
+                                {title: "Creatures", cards: displayData.creatures},
+                                {title: "Sorceries", cards: displayData.sorceries},
+                                {title: "Instants", cards: displayData.instants},
+                                {title: "Artifacts", cards: displayData.artifacts},
+                                {title: "Lands", cards: displayData.lands},
+                                {title: "Sideboard", cards: displayData.sideboard},
                             ]
                                 .filter(section => section.cards && section.cards.length > 0)
                                 .map(section => (

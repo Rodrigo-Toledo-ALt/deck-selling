@@ -4,6 +4,7 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import DeckCard from '@/components/DeckCard';
 import { decks, Deck, colorNames } from '@/lib/decks';
+import { useProducts } from '@/hooks/useSupabase';
 import { Button } from '@/components/ui/button';
 import { Search, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -47,9 +48,22 @@ const Catalog = () => {
   const [selectedColors, setSelectedColors] = useState<string[]>(['Any']);
   const [filteredDecks, setFilteredDecks] = useState<Deck[]>(decks);
   const [searchQuery, setSearchQuery] = useState('');
+  const { products, loading, error } = useProducts();
   
   useEffect(() => {
-    let results = [...decks];
+    // Use Supabase products if available, otherwise fallback to static decks
+    let results = products.length > 0 ? products.map(product => ({
+      id: product.id,
+      name: product.name,
+      format: product.format as 'Commander',
+      archetype: 'Control' as const, // You might want to add archetype to your database
+      colors: product.colors as ('W' | 'U' | 'B' | 'R' | 'G')[],
+      description: product.description,
+      imageUrl: product.main_image_url,
+      price: Number(product.price),
+      cards: [], // Cards are stored in deck_cards JSON field
+      featured: false
+    })) : [...decks];
     
     if (archetype !== 'All') {
       results = results.filter(deck => deck.archetype === archetype);
@@ -86,7 +100,7 @@ const Catalog = () => {
     }
     
     setFilteredDecks(results);
-  }, [archetype, selectedColors, searchQuery]);
+  }, [archetype, selectedColors, searchQuery, products]);
   
   const resetFilters = () => {
     setArchetype('All');
@@ -229,11 +243,25 @@ const Catalog = () => {
             </div>
             
             {filteredDecks.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {filteredDecks.map(deck => (
-                  <DeckCard key={deck.id} deck={deck} />
-                ))}
-              </div>
+              <>
+                {loading && (
+                  <div className="text-center py-4">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+                    <p className="text-muted-foreground">Loading decks...</p>
+                  </div>
+                )}
+                {error && (
+                  <div className="text-center py-4 mb-8">
+                    <p className="text-destructive">Error loading decks: {error}</p>
+                    <p className="text-muted-foreground text-sm mt-2">Showing sample decks instead</p>
+                  </div>
+                )}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  {filteredDecks.map(deck => (
+                    <DeckCard key={deck.id} deck={deck} />
+                  ))}
+                </div>
+              </>
             ) : (
               <div className="text-center py-12">
                 <p className="text-xl text-muted-foreground">No decks found matching your criteria</p>

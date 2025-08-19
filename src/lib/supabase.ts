@@ -4,12 +4,15 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables')
+  console.warn('Supabase environment variables not found. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY')
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+export const supabase = createClient(
+  supabaseUrl || 'https://placeholder.supabase.co', 
+  supabaseAnonKey || 'placeholder-key'
+)
 
-// Database types (you can generate these from your Supabase schema)
+// Database types - will be updated once you connect your Supabase
 export interface Database {
   public: {
     Tables: {
@@ -19,7 +22,7 @@ export interface Database {
           name: string
           description: string
           price: number
-          deck_cards: any // JSON field
+          deck_cards: any
           main_image_url: string
           colors: string[]
           format: string
@@ -35,8 +38,6 @@ export interface Database {
           main_image_url: string
           colors: string[]
           format: string
-          created_at?: string
-          updated_at?: string
         }
         Update: {
           id?: string
@@ -47,31 +48,6 @@ export interface Database {
           main_image_url?: string
           colors?: string[]
           format?: string
-          created_at?: string
-          updated_at?: string
-        }
-      }
-      cart_items: {
-        Row: {
-          id: string
-          user_id: string
-          product_id: string
-          quantity: number
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          product_id: string
-          quantity: number
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          product_id?: string
-          quantity?: number
-          created_at?: string
         }
       }
     }

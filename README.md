@@ -6,6 +6,34 @@
 
 ## How can I edit this code?
 
+## Supabase Setup
+
+This project uses Supabase for the database. To connect your Supabase project:
+
+1. Create a new Supabase project at [supabase.com](https://supabase.com)
+2. Copy your project URL and anon key from the project settings
+3. Create a `.env.local` file in the root directory with:
+   ```
+   VITE_SUPABASE_URL=your_supabase_project_url
+   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+   ```
+4. Run the database migrations to create the required tables
+5. The app will automatically connect to your Supabase database
+
+### Database Schema
+
+The project expects a `products` table with the following structure:
+- `id` (uuid, primary key)
+- `name` (text)
+- `description` (text)
+- `price` (numeric)
+- `deck_cards` (jsonb) - stores the card data
+- `main_image_url` (text)
+- `colors` (text array)
+- `format` (text)
+- `created_at` (timestamp)
+- `updated_at` (timestamp)
+
 There are several ways of editing your application.
 
 **Use Lovable**
