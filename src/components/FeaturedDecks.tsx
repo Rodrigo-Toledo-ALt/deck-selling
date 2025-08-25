@@ -2,7 +2,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import DeckCard from './DeckCard';
-import { getFeaturedDecks } from '@/lib/decks';
+import { getFeaturedDecks } from '@/data/decks.ts';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
 

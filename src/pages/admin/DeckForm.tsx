@@ -25,7 +25,7 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { useToast } from '@/components/ui/use-toast';
-import { Deck, decks } from '@/lib/decks';
+import { Deck, decks } from '@/data/decks.ts';
 import AdminLayout from '@/components/AdminLayout';
 
 const archetypeOptions = ['Aggro', 'Control', 'Combo', 'Midrange', 'Tempo', 'Stax', 'Tribal'];

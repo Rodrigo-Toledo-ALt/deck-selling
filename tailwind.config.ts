@@ -66,7 +66,7 @@ export default {
                     foreground: 'hsl(var(--warning-foreground))'
                 },
                 mtg: {
-                    blue: '#db8664',
+                    blue: '#b5cde3',
                     white: '#f0f2c0',
                     black: '#aca29a',
                     red: '#db8664',

@@ -1,20 +1,26 @@
 import React from 'react';
 import { MessageCircle, Heart, Eye, Share2 } from 'lucide-react';
 
-const DeckHeader: React.FC = () => {
+// Espera recibir un objeto deck como prop
+const DeckHeader = ({ deck }) => {
+    if (!deck) return null;
+
     return (
-        <div className="relative w-full min-h-[200px]  overflow-hidden bg-[url('/src/lib/commanderExample.jpeg')] bg-no-repeat bg-cover rounded-lg">
-            {/* Overlay púrpura - ESTO ES LO QUE TE FALTA */}
+        <div
+            className="relative w-full min-h-[200px] overflow-hidden bg-no-repeat bg-cover rounded-lg"
+            style={{
+                backgroundImage: `url('${deck.imageUrl}')`
+            }}
+        >
+            {/* Overlay púrpura */}
             <div className="absolute inset-0 z-10 bg-gradient-to-r from-secondary via-secondary to-slate-800/10"></div>
-            {/* Background decorative elements */}
 
-
-            {/* Replace with your image path [ESTO SE LE DEBE PASAR AL COMPONENTE COMO PARÁMETRO]*/}
-            <div className=" absolute left-1/2 top-0 w-1/2 h-full overflow-hidden z-0">
+            {/* Imagen principal del deck */}
+            <div className="absolute left-1/2 top-0 w-1/2 h-full overflow-hidden z-0">
                 <img
-                    src="/src/lib/commanderExample.jpeg"
-                    alt="Commander artwork"
-                    className="deckheader-image min-w-full min-h-full object-cover "
+                    src={deck.imageUrl}
+                    alt={deck.name}
+                    className="deckheader-image min-w-full min-h-full object-cover"
                     fetchPriority="high"
                 />
             </div>
@@ -30,20 +36,18 @@ const DeckHeader: React.FC = () => {
                 </div>
 
                 {/* Main title */}
-                <h1 className="text-5xl font-bold text-gradient mb-4 tracking-tight ">
-                    Moira cachonda
+                <h1 className="text-5xl font-bold text-gradient mb-4 tracking-tight">
+                    {deck.name}
                 </h1>
 
                 {/* Tags */}
                 <div className="flex gap-3 mb-6">
-          <span className="px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-white/90 text-sm font-medium border border-white/30">
-            COMMANDER
-          </span>
+                    <span className="px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-white/90 text-sm font-medium border border-white/30">
+                        {deck.format?.toUpperCase() || 'COMMANDER'}
+                    </span>
+                    {/* Puedes añadir más tags aquí, como el arquetipo o colores */}
                 </div>
-
             </div>
-
-
         </div>
     );
 };

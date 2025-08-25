@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Deck, formatDeckColors } from '@/lib/decks';
+import { Deck, formatDeckColors } from '@/data/decks.ts';
 import { Button } from '@/components/ui/button';
 
 interface DeckCardProps {

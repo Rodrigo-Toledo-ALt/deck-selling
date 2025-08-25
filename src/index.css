@@ -136,3 +136,10 @@
     @apply shadow-[0_0_8px_hsla(25,95%,60%,0.4)] scale-110;
   }
 }
+
+@layer utilities {
+    .perspective-1000 { perspective: 1000px; }
+    .transform-style-preserve-3d { transform-style: preserve-3d; }
+    .backface-hidden { backface-visibility: hidden; }
+    .rotate-y-180 { transform: rotateY(180deg); }
+}

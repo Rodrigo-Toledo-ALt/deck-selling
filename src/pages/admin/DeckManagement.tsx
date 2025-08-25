@@ -10,7 +10,7 @@ import {
   TableRow 
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Deck, decks as initialDecks } from '@/lib/decks';
+import { Deck, decks as initialDecks } from '@/data/decks.ts';
 import { Pencil, Trash2, Plus } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import AdminLayout from '@/components/AdminLayout';

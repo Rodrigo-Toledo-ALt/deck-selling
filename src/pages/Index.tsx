@@ -1,11 +1,17 @@
 
-import React from 'react';
+import React, {useEffect, useState} from 'react';
 import { Link } from 'react-router-dom';
 import FeaturedDecks from '@/components/FeaturedDecks';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import {deckData} from "@/data/deckData.ts";
+
+
+
+
 
 const Index = () => {
+
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />

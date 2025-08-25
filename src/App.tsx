@@ -1,4 +1,4 @@
-
+// src/App.tsx (tu archivo actual)
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -15,37 +15,38 @@ import DeckManagement from "./pages/admin/DeckManagement";
 import DeckForm from "./pages/admin/DeckForm";
 import NotFound from "./pages/NotFound";
 import ScrollToTop from "@/components/ScrollToTop.tsx";
+import { AuthProvider } from "@/supabase/AuthProvider"; // <-- IMPORTA
 
 const queryClient = new QueryClient();
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <ScrollToTop behavior="auto" />
-        <Routes>
-          {/* Public Routes */}
-          <Route path="/" element={<Index />} />
-          <Route path="/catalog" element={<Catalog />} />
-          <Route path="/deck/:id" element={<DeckDetail />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/cart" element={<Cart />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          
-          {/* Admin Routes */}
-          <Route path="/admin/decks" element={<DeckManagement />} />
-          <Route path="/admin/decks/create" element={<DeckForm />} />
-          <Route path="/admin/decks/edit/:id" element={<DeckForm />} />
-          
-          {/* Catch-all route */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+    <QueryClientProvider client={queryClient}>
+        <AuthProvider> {/* <-- ENVUELVE AQUÍ */}
+            <TooltipProvider>
+                <Toaster />
+                <Sonner />
+                <BrowserRouter>
+                    <ScrollToTop behavior="auto" />
+                    <Routes>
+                        {/* Public Routes */}
+                        <Route path="/" element={<Index />} />
+                        <Route path="/catalog" element={<Catalog />} />
+                        <Route path="/deck/:id" element={<DeckDetail />} />
+                        <Route path="/about" element={<About />} />
+                        <Route path="/cart" element={<Cart />} />
+                        <Route path="/login" element={<Login />} />
+                        <Route path="/register" element={<Register />} />
+                        {/* Admin Routes */}
+                        <Route path="/admin/decks" element={<DeckManagement />} />
+                        <Route path="/admin/decks/create" element={<DeckForm />} />
+                        <Route path="/admin/decks/edit/:id" element={<DeckForm />} />
+                        {/* Catch-all route */}
+                        <Route path="*" element={<NotFound />} />
+                    </Routes>
+                </BrowserRouter>
+            </TooltipProvider>
+        </AuthProvider>
+    </QueryClientProvider>
 );
 
 export default App;
