@@ -16,7 +16,9 @@ import { useForm } from 'react-hook-form';
 import { useToast } from '@/components/ui/use-toast';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import {useAuth} from "@/hooks/useSupabase.ts";
+import {useAuth} from "@/supabase/AuthProvider.tsx";
+
+
 
 
 const loginSchema = z.object({

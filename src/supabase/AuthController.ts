@@ -99,6 +99,7 @@ export async function createUserIfNotExists(user: { id: string; email?: string |
     console.log('createUserIfNotExists - insert result:', { created, insErr });
 
     if (insErr) {
+
         // imprime detalles para debug. Si es RLS, aquí verás el mensaje
         console.error('createUserIfNotExists insert error details:', insErr);
         return { created: false, error: insErr };
