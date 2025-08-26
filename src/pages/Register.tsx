@@ -87,14 +87,19 @@ const Register = () => {
     const onSubmit = async (values: RegisterValues) => {
         setIsLoading(true);
         try {
-            // Usando signUp del AuthProvider (Supabase)
-            const res = await signUp(values.email, values.password);
-            // Maneja errores/confirmaciones según la respuesta de supabase
+            const metadata = {
+                full_name: values.name,
+                birthdate: values.birthDate ? values.birthDate.toISOString().split('T')[0] : null
+            };
+
+            const res = await signUp(values.email, values.password, metadata);
+            console.log('signUp result:', res);
+
             if (res.error) {
                 toast({
                     title: 'Registration failed',
                     description: res.error.message || 'Something went wrong',
-                    variant: 'destructive'
+                    variant: 'destructive',
                 });
             } else {
                 toast({
@@ -104,11 +109,7 @@ const Register = () => {
                 navigate('/login');
             }
         } catch (err: any) {
-            toast({
-                title: 'Registration error',
-                description: err?.message ?? String(err),
-                variant: 'destructive'
-            });
+            toast({ title: 'Registration error', description: err?.message ?? String(err), variant: 'destructive' });
         } finally {
             setIsLoading(false);
         }

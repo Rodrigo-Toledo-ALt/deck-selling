@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
@@ -17,6 +16,8 @@ import { useForm } from 'react-hook-form';
 import { useToast } from '@/components/ui/use-toast';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import {useAuth} from "@/hooks/useSupabase.ts";
+
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email'),
@@ -37,36 +38,50 @@ const Login = () => {
     }
   });
 
-  const onSubmit = (values: LoginValues) => {
-    console.log(values);
-    
-    // Mock login logic (replace with real auth later)
-    if (values.email === 'admin@pauperforge.com' && values.password === 'admin123') {
-      // Admin login
-      localStorage.setItem('userRole', 'admin');
-      localStorage.setItem('userEmail', values.email);
-      toast({
-        title: "Admin login successful",
-        description: "Welcome to the admin dashboard",
-      });
-      navigate('/admin/decks');
-    } else if (values.email === 'user@example.com' && values.password === 'user123') {
-      // Regular user login
-      localStorage.setItem('userRole', 'user');
-      localStorage.setItem('userEmail', values.email);
-      toast({
-        title: "Login successful",
-        description: "Welcome back!",
-      });
-      navigate('/');
-    } else {
-      toast({
-        title: "Login failed",
-        description: "Invalid email or password",
-        variant: "destructive"
-      });
-    }
-  };
+    const { signIn } = useAuth();
+    const [isLoading, setIsLoading] = React.useState(false);
+
+
+    const onSubmit = async (values: LoginValues) => {
+        setIsLoading(true);
+        try {
+            const res = await signIn(values.email, values.password);
+            // res expected shape: { data, error } from supabase
+            if (res.error) {
+                toast({
+                    title: "Login failed",
+                    description: res.error.message ?? 'Something went wrong',
+                    variant: "destructive",
+                });
+                return;
+            }
+
+            // Si hay session => login exitoso inmediato
+            if (res.data?.session) {
+                toast({
+                    title: "Login successful",
+                    description: "Welcome back!",
+                });
+                // La suscripción en AuthProvider actualizará user/session automáticamente.
+                navigate('/');
+                return;
+            }
+
+            // Si no hay session (p.ej. magic link / email confirmation required)
+            toast({
+                title: "Check your email",
+                description: "If your account requires confirmation, check your inbox.",
+            });
+        } catch (err: any) {
+            toast({
+                title: "Login error",
+                description: err?.message ?? String(err),
+                variant: "destructive"
+            });
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
   return (
     <div className="flex flex-col min-h-screen">

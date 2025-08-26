@@ -1,18 +1,18 @@
 // src/supabase/AuthProvider.tsx
 import React, { createContext, useContext, useEffect, useState } from 'react'
-import { supabase } from './supabase-client'
+import { supabase } from './supabase-client.ts'
 import type { Session, User } from '@supabase/supabase-js'
-import { createUserIfNotExists } from './AuthController' // ajusta la ruta si es necesario
+import * as authController from './AuthController' // reutilizamos todo el controller
 
 type AuthContextType = {
     user: User | null
     session: Session | null
     loading: boolean
-    signUp: (email: string, password: string) => Promise<any>
-    signIn: (email: string, password: string) => Promise<any>
-    signInWithMagicLink: (email: string) => Promise<any>
-    signInWithProvider: (provider: 'github' | 'google' | 'azure' | 'facebook') => Promise<void>
-    signOut: () => Promise<void>
+    signUp: typeof authController.signUp
+    signIn: typeof authController.signIn
+    signInWithMagicLink: typeof authController.signInWithMagicLink
+    signInWithProvider: typeof authController.signInWithProvider
+    signOut: typeof authController.signOut
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -25,72 +25,53 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     useEffect(() => {
         let mounted = true
 
-        // Recupera sesión inicial
+        // Recupera la sesión inicial
         supabase.auth.getSession().then(async ({ data }) => {
             if (!mounted) return
-            const initialSession = data?.session ?? null
-            setSession(initialSession)
-            setUser(initialSession?.user ?? null)
+            const s = data?.session ?? null
+            setSession(s)
+            setUser(s?.user ?? null)
             setLoading(false)
 
-            // Si ya hay sesión al cargar, asegurar existencia de fila users
-            if (initialSession?.user) {
+            if (s?.user) {
+                console.log('AuthProvider: calling createUserIfNotExists for', s.user.id);
                 try {
-                    await createUserIfNotExists({
-                        id: initialSession.user.id,
-                        email: initialSession.user.email,
-                        user_metadata: initialSession.user.user_metadata
-                    })
-                } catch (e) {
-                    console.error('init createUserIfNotExists error', e)
+                    const r = await authController.createUserIfNotExists(s.user)
+                    console.log('AuthProvider.createUserIfNotExists result:', r);
+                } catch (err) {
+                    console.error('init createUserIfNotExists error', err)
                 }
             }
         })
 
         // Escucha cambios de auth (login/logout)
-        const { data: listener } = supabase.auth.onAuthStateChange(async (_event, sess) => {
-            if (!mounted) return
-            setSession(sess ?? null)
-            setUser(sess?.user ?? null)
-
-            if (sess?.user) {
+        const { data: sub } = supabase.auth.onAuthStateChange(async (_event, s) => {
+            console.log('onAuthStateChange event:', _event, s);
+            setSession(s ?? null);
+            setUser(s?.user ?? null);
+            if (s?.user) {
                 try {
-                    await createUserIfNotExists({
-                        id: sess.user.id,
-                        email: sess.user.email,
-                        user_metadata: sess.user.user_metadata
-                    })
+                    const r = await authController.createUserIfNotExists(s.user);
+                    console.log('onAuthStateChange createUserIfNotExists result:', r);
                 } catch (err) {
-                    console.error('onAuthStateChange createUserIfNotExists error', err)
+                    console.error('onAuthStateChange createUserIfNotExists error', err);
                 }
             }
-        })
+        });
 
         return () => {
             mounted = false
-            listener.subscription.unsubscribe()
+            sub.subscription.unsubscribe()
         }
     }, [])
 
-    // Métodos expuestos (puedes seguir usándolos o moverlos a AuthController)
-    const signUp = async (email: string, password: string) => {
-        return supabase.auth.signUp({ email, password })
-    }
-
-    const signIn = async (email: string, password: string) => {
-        return supabase.auth.signInWithPassword({ email, password })
-    }
-
-    const signInWithMagicLink = async (email: string) => {
-        return supabase.auth.signInWithOtp({ email })
-    }
-
-    const signInWithProvider = async (provider: 'github' | 'google' | 'azure' | 'facebook') => {
-        await supabase.auth.signInWithOAuth({ provider: provider as any })
-    }
-
+    // Reexportamos las funciones del controller (puedes envolverlas si necesitas UI/toasts)
+    const signUp = authController.signUp
+    const signIn = authController.signIn
+    const signInWithMagicLink = authController.signInWithMagicLink
+    const signInWithProvider = authController.signInWithProvider
     const signOut = async () => {
-        await supabase.auth.signOut()
+        await authController.signOut()
         setUser(null)
         setSession(null)
     }
