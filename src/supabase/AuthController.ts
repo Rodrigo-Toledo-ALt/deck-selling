@@ -81,11 +81,10 @@ export async function createUserIfNotExists(user: { id: string; email?: string |
 
     const payload = {
         id: user.id,
-        username: user.email ? user.email.split('@')[0] : `user_${Date.now()}`,
-        password_hash: null,
+        username:user.user_metadata?.full_name?? null ,
         role: 'customer',
-        name: user.user_metadata?.full_name ?? null,
-        email: user.email ?? null
+        email: user.email ?? null,
+        birthdate:user.user_metadata?.birthdate?? null
     };
 
     console.log('createUserIfNotExists - insert payload:', payload);
