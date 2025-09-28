@@ -4,7 +4,6 @@ import { Link } from 'react-router-dom';
 import FeaturedDecks from '@/components/FeaturedDecks';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import {deckData} from "@/data/deckData.ts";
 
 
 

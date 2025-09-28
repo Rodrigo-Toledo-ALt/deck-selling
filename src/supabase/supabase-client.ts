@@ -14,4 +14,3 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
 }
 
 export const supabase = createClient(String(SUPABASE_URL), String(SUPABASE_ANON_KEY));
-window.supabase = supabase

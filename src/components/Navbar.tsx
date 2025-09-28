@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Menu, X, ShoppingCart } from 'lucide-react';
+import { Menu, X, ShoppingCart, LayoutDashboard } from 'lucide-react';
+import { useAuth } from "@/supabase/AuthProvider.tsx";
 
-const Navbar = ({ isAuthenticated }) => {
+const Navbar = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const { user, role } = useAuth();
+    const isAuthenticated = !!user;
 
     return (
         <nav className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
@@ -36,8 +39,19 @@ const Navbar = ({ isAuthenticated }) => {
                                     Register
                                 </Link>
                             </>
+                        ) : role === "admin" ? (
+                            <Link
+                                to="/admin/decks"
+                                className="relative flex items-center text-foreground hover:text-primary transition-colors"
+                            >
+                                <LayoutDashboard className="h-5 w-5 mr-1" />
+                                <span>Admin Dashboard</span>
+                            </Link>
                         ) : (
-                            <Link to="/cart" className="relative flex items-center text-foreground hover:text-primary transition-colors">
+                            <Link
+                                to="/cart"
+                                className="relative flex items-center text-foreground hover:text-primary transition-colors"
+                            >
                                 <ShoppingCart className="h-5 w-5 mr-1" />
                                 <span>Cart</span>
                             </Link>
@@ -97,6 +111,15 @@ const Navbar = ({ isAuthenticated }) => {
                                     Register
                                 </Link>
                             </>
+                        ) : role === "admin" ? (
+                            <Link
+                                to="/admin/decks"
+                                className="flex items-center text-foreground hover:text-primary transition-colors"
+                                onClick={() => setIsMenuOpen(false)}
+                            >
+                                <LayoutDashboard className="h-5 w-5 mr-1" />
+                                <span>Admin Dashboard</span>
+                            </Link>
                         ) : (
                             <Link
                                 to="/cart"

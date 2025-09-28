@@ -6,7 +6,7 @@ import Footer from '@/components/Footer.tsx';
 import DeckHeader from '@/components/DeckDetailCF/DeckHeader.tsx';
 import CardList from '@/components/DeckDetailCF/CardList.tsx';
 import ImageFlip from '@/components/ImageFlip.tsx';
-import { renderManaCost } from '@/lib/methods';
+import { renderManaCost } from '@/utils/methods.tsx';
 
 const DeckDetail = () => {
     const { id } = useParams();

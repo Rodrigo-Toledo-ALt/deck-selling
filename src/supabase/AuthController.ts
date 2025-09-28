@@ -60,49 +60,55 @@ export async function signOut() {
  * Crea la fila users si no existe. Llamar solo cuando exista session.user
  */
 export async function createUserIfNotExists(user: { id: string; email?: string | null; user_metadata?: any }) {
-    console.log('createUserIfNotExists called with user:', user);
+    console.log('⚡ createUserIfNotExists called with user:', user);
 
     if (!user?.id) {
-        console.warn('createUserIfNotExists: no user id');
+        console.warn('⛔ createUserIfNotExists: no user id');
         return { created: false, error: 'no-auth-user' };
     }
 
-    // Verificar si existe
+    // --- SELECT para comprobar si ya existe ---
+    console.log("➡️ Checking if user exists:", user.id);
     const { data: existing, error: selErr } = await supabase
         .from('users')
-        .select('id')
+        .select('id, role, email')
         .eq('id', user.id)
         .maybeSingle();
+    console.log("⬅️ Result of SELECT:", { existing, selErr });
 
-    console.log('createUserIfNotExists - select existing:', { existing, selErr });
+    if (selErr) {
+        console.error('🚨 Error checking user existence:', selErr);
+        return { created: false, error: selErr };
+    }
 
-    if (selErr) return { created: false, error: selErr };
-    if (existing) return { created: false, data: existing };
+    if (existing) {
+        console.log('ℹ️ User already exists, skipping insert:', existing);
+        return { created: false, data: existing };
+    }
 
+    // --- INSERT solo si no existía ---
     const payload = {
         id: user.id,
-        username:user.user_metadata?.full_name?? null ,
-        role: 'customer',
+        username: user.user_metadata?.full_name ?? null,
+        role: 'customer',   // 👈 rol por defecto
         email: user.email ?? null,
-        birthdate:user.user_metadata?.birthdate?? null
+        birthdate: user.user_metadata?.birthdate ?? null
     };
 
-    console.log('createUserIfNotExists - insert payload:', payload);
-
+    console.log('➡️ Inserting new user with payload:', payload);
     const { data: created, error: insErr } = await supabase
         .from('users')
         .insert(payload)
         .select()
         .single();
 
-    console.log('createUserIfNotExists - insert result:', { created, insErr });
+    console.log('⬅️ Result of INSERT:', { created, insErr });
 
     if (insErr) {
-
-        // imprime detalles para debug. Si es RLS, aquí verás el mensaje
-        console.error('createUserIfNotExists insert error details:', insErr);
+        console.error('🚨 Error inserting user into users table:', insErr);
         return { created: false, error: insErr };
     }
 
+    console.log('✅ User created successfully:', created);
     return { created: true, data: created };
 }

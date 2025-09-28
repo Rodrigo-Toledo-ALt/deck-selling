@@ -15,7 +15,8 @@ import DeckManagement from "./pages/admin/DeckManagement";
 import DeckForm from "./pages/admin/DeckForm";
 import NotFound from "./pages/NotFound";
 import ScrollToTop from "@/components/ScrollToTop.tsx";
-import { AuthProvider } from "@/supabase/AuthProvider"; // <-- IMPORTA
+import { AuthProvider } from "@/supabase/AuthProvider";
+import ProtectedAdminRoute from "@/supabase/ProtectedAdminRoute.tsx"; // <-- IMPORTA
 
 const queryClient = new QueryClient();
 
@@ -37,9 +38,9 @@ const App = () => (
                         <Route path="/login" element={<Login />} />
                         <Route path="/register" element={<Register />} />
                         {/* Admin Routes */}
-                        <Route path="/admin/decks" element={<DeckManagement />} />
-                        <Route path="/admin/decks/create" element={<DeckForm />} />
-                        <Route path="/admin/decks/edit/:id" element={<DeckForm />} />
+                        <Route path="/admin/decks" element={<ProtectedAdminRoute><DeckManagement /></ProtectedAdminRoute>}/>
+                        <Route path="/admin/decks/create" element={<ProtectedAdminRoute><DeckForm /></ProtectedAdminRoute>}/>
+                        <Route path="/admin/decks/edit/:id" element={<ProtectedAdminRoute><DeckForm /></ProtectedAdminRoute>}/>
                         {/* Catch-all route */}
                         <Route path="*" element={<NotFound />} />
                     </Routes>
