@@ -4,30 +4,62 @@ import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Deck, decks as initialDecks } from '@/data/decks.ts';
 import { Pencil, Trash2, Plus } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import AdminLayout from '@/components/AdminLayout';
 
-const DeckManagement = () => {
+// NUEVO: trae de Supabase
+import { getAllDecks, getSignedMainImageUrl, Deck } from '@/data/decks_remote';
+
+type DeckRow = Deck & { imageUrl?: string; archetype?: string };
+
+const DeckManagement: React.FC = () => {
     const navigate = useNavigate();
     const { toast } = useToast();
-    const [decks, setDecks] = useState<Deck[]>([]);
+    const [decks, setDecks] = useState<DeckRow[]>([]);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // ⚡ Aquí solo se carga data porque ya sabemos que somos admin (gracias al ProtectedAdminRoute)
-        setDecks(initialDecks);
-    }, []);
+        let alive = true;
+        (async () => {
+            try {
+                setLoading(true);
+                const list = await getAllDecks();
+                // Firmar portada para la miniatura
+                const urls = await Promise.all(list.map(d => getSignedMainImageUrl(d, 3600)));
+                const rows: DeckRow[] = list.map((d, i) => ({
+                    ...d,
+                    imageUrl: urls[i] || '',
+                    archetype: 'Commander', // si luego guardas arquetipo en DB, cámbialo aquí
+                }));
+                if (!alive) return;
+                setDecks(rows);
+            } catch (e) {
+                console.error('DeckManagement load error:', e);
+                toast({ title: 'Error', description: 'Could not load decks from Supabase', variant: 'destructive' });
+            } finally {
+                if (alive) setLoading(false);
+            }
+        })();
+        return () => { alive = false; };
+    }, [toast]);
 
     const handleEditDeck = (deckId: string) => {
         navigate(`/admin/decks/edit/${deckId}`);
     };
 
-    const handleDeleteDeck = (deckId: string) => {
-        if (window.confirm('Are you sure you want to delete this deck?')) {
-            setDecks(decks.filter(deck => deck.id !== deckId));
-            toast({ title: "Deck deleted", description: "The deck has been successfully deleted" });
-        }
+    const handleDeleteDeck = async (deckId: string) => {
+        if (!window.confirm('Are you sure you want to delete this deck?')) return;
+
+        // Opcional: borrar en Supabase
+        // const { error } = await supabase.from('products').delete().eq('id', deckId);
+        // if (error) {
+        //   toast({ title: 'Delete failed', description: error.message, variant: 'destructive' });
+        //   return;
+        // }
+
+        setDecks(prev => prev.filter(d => d.id !== deckId));
+        toast({ title: 'Deck deleted', description: 'The deck has been successfully deleted' });
     };
 
     const handleCreateDeck = () => {
@@ -58,13 +90,33 @@ const DeckManagement = () => {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {decks.map((deck) => (
+                            {loading ? (
+                                [...Array(6)].map((_, i) => (
+                                    <TableRow key={i}>
+                                        <TableCell><div className="w-16 h-12 bg-muted animate-pulse rounded" /></TableCell>
+                                        <TableCell><div className="h-4 w-32 bg-muted animate-pulse rounded" /></TableCell>
+                                        <TableCell><div className="h-4 w-20 bg-muted animate-pulse rounded" /></TableCell>
+                                        <TableCell><div className="h-4 w-24 bg-muted animate-pulse rounded" /></TableCell>
+                                        <TableCell><div className="h-4 w-16 bg-muted animate-pulse rounded" /></TableCell>
+                                        <TableCell />
+                                    </TableRow>
+                                ))
+                            ) : decks.map((deck) => (
                                 <TableRow key={deck.id}>
                                     <TableCell>
-                                        <img src={deck.imageUrl} alt={deck.name} className="w-16 h-12 object-cover rounded" />
+                                        {deck.imageUrl ? (
+                                            <img
+                                                src={deck.imageUrl}
+                                                alt={deck.name}
+                                                className="w-16 h-12 object-cover rounded"
+                                                loading="lazy"
+                                            />
+                                        ) : (
+                                            <div className="w-16 h-12 bg-muted rounded" />
+                                        )}
                                     </TableCell>
                                     <TableCell className="font-medium">{deck.name}</TableCell>
-                                    <TableCell>{deck.archetype}</TableCell>
+                                    <TableCell>{deck.archetype || 'Commander'}</TableCell>
                                     <TableCell>{deck.colors.join(', ')}</TableCell>
                                     <TableCell>€{deck.price}</TableCell>
                                     <TableCell className="text-right">

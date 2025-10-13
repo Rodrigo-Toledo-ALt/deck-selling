@@ -12,6 +12,7 @@ import Cart from "./pages/Cart";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import DeckManagement from "./pages/admin/DeckManagement";
+import ClientManagement from "@/pages/admin/ClientsManagement.tsx";
 import DeckForm from "./pages/admin/DeckForm";
 import NotFound from "./pages/NotFound";
 import ScrollToTop from "@/components/ScrollToTop.tsx";
@@ -41,6 +42,7 @@ const App = () => (
                         <Route path="/admin/decks" element={<ProtectedAdminRoute><DeckManagement /></ProtectedAdminRoute>}/>
                         <Route path="/admin/decks/create" element={<ProtectedAdminRoute><DeckForm /></ProtectedAdminRoute>}/>
                         <Route path="/admin/decks/edit/:id" element={<ProtectedAdminRoute><DeckForm /></ProtectedAdminRoute>}/>
+                        <Route path="/admin/clients" element={<ProtectedAdminRoute><ClientManagement /></ProtectedAdminRoute>}/>
                         {/* Catch-all route */}
                         <Route path="*" element={<NotFound />} />
                     </Routes>
