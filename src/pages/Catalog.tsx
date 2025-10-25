@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import DeckCard from '@/components/DeckCard';
+import DeckCard from '@/components/Decks/DeckCard.tsx';
 import { Button } from '@/components/ui/button';
 import { Search, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';

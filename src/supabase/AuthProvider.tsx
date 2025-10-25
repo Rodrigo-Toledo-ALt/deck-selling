@@ -1,7 +1,9 @@
+// src/supabase/AuthProvider.tsx
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { supabase } from './supabase-client.ts';
 import type { Session, User } from '@supabase/supabase-js';
 import * as authController from './AuthController';
+import { mergeAnonymousCartOnLogin } from '@/data/cart_merge';
 
 type AuthContextType = {
     user: User | null;
@@ -61,6 +63,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 } else {
                     console.log("🔑 role cargado:", data?.role ?? null);
                     setRole(data?.role ?? null);
+                }
+
+                // 🛒 Merge carrito anónimo -> carrito del usuario
+                try {
+                    await mergeAnonymousCartOnLogin();
+                    console.log('🛒 Anon cart merged into user cart');
+                } catch (mergeErr) {
+                    console.error('⚠️ Merge cart error:', mergeErr);
                 }
             } else {
                 setRole(null);

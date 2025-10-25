@@ -1,7 +1,7 @@
 // src/components/FeaturedDecks.tsx
 import React from 'react';
 import { Link } from 'react-router-dom';
-import DeckCard from './DeckCard';
+import DeckCard from './Decks/DeckCard.tsx';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
 import { getFeaturedDecks, getSignedMainImageUrl, Deck } from '@/data/decks_remote';

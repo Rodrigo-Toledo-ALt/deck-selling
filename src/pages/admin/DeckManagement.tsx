@@ -10,6 +10,7 @@ import AdminLayout from '@/components/AdminLayout';
 
 // NUEVO: trae de Supabase
 import { getAllDecks, getSignedMainImageUrl, Deck } from '@/data/decks_remote';
+import Navbar from "@/components/Navbar.tsx";
 
 type DeckRow = Deck & { imageUrl?: string; archetype?: string };
 
@@ -67,7 +68,10 @@ const DeckManagement: React.FC = () => {
     };
 
     return (
+        <div className="flex flex-col min-h-screen">
+            <Navbar />
         <AdminLayout>
+
             <div className="container mx-auto px-4 py-8">
                 <div className="flex justify-between items-center mb-8">
                     <h1 className="text-3xl font-bold text-gradient">Manage Decks</h1>
@@ -136,6 +140,7 @@ const DeckManagement: React.FC = () => {
                 </div>
             </div>
         </AdminLayout>
+    </div>
     );
 };
 

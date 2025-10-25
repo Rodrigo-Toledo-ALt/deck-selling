@@ -2,8 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import DeckHeader from '@/components/DeckDetailCF/DeckHeader';
-import CardList from '@/components/DeckDetailCF/CardList';
+import DeckHeader from '@/components/Decks/DeckDetailCF/DeckHeader';
+import CardList from '@/components/Decks/DeckDetailCF/CardList';
 import ImageFlip from '@/components/ImageFlip';
 import { renderManaCost } from '@/utils/methods';
 import {

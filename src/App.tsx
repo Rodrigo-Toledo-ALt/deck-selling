@@ -1,4 +1,4 @@
-// src/App.tsx (tu archivo actual)
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -17,7 +17,11 @@ import DeckForm from "./pages/admin/DeckForm";
 import NotFound from "./pages/NotFound";
 import ScrollToTop from "@/components/ScrollToTop.tsx";
 import { AuthProvider } from "@/supabase/AuthProvider";
-import ProtectedAdminRoute from "@/supabase/ProtectedAdminRoute.tsx"; // <-- IMPORTA
+import ProtectedAdminRoute from "@/supabase/ProtectedAdminRoute.tsx";
+import ClientDetailPage from "@/pages/admin/ClientDetail.tsx";
+import ClientsManagement from "@/pages/admin/ClientsManagement.tsx";
+import AccountProfile from "@/pages/account/AccountProfile.tsx";
+import ProtectedRoute from "@/supabase/ProtectedRoute.tsx";
 
 const queryClient = new QueryClient();
 
@@ -38,11 +42,15 @@ const App = () => (
                         <Route path="/cart" element={<Cart />} />
                         <Route path="/login" element={<Login />} />
                         <Route path="/register" element={<Register />} />
+                        {/* User Routes */}
+                        <Route path="/account" element={<ProtectedRoute><AccountProfile /></ProtectedRoute>} />
                         {/* Admin Routes */}
                         <Route path="/admin/decks" element={<ProtectedAdminRoute><DeckManagement /></ProtectedAdminRoute>}/>
                         <Route path="/admin/decks/create" element={<ProtectedAdminRoute><DeckForm /></ProtectedAdminRoute>}/>
                         <Route path="/admin/decks/edit/:id" element={<ProtectedAdminRoute><DeckForm /></ProtectedAdminRoute>}/>
                         <Route path="/admin/clients" element={<ProtectedAdminRoute><ClientManagement /></ProtectedAdminRoute>}/>
+                        <Route path="/admin/clients" element={<ProtectedAdminRoute><ClientsManagement /></ProtectedAdminRoute>} />
+                        <Route path="/admin/clients/:id" element={<ProtectedAdminRoute><ClientDetailPage /></ProtectedAdminRoute>} />
                         {/* Catch-all route */}
                         <Route path="*" element={<NotFound />} />
                     </Routes>

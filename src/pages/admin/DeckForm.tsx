@@ -14,6 +14,7 @@ import AdminLayout from '@/components/AdminLayout';
 import { useAuth } from '@/supabase/AuthProvider';
 import { supabase } from '@/supabase/supabase-client.ts';
 import 'mana-font/css/mana.css';
+import Navbar from "@/components/Navbar.tsx";
 
 const N8N_API_KEY = import.meta.env.N8N_API_KEY;
 
@@ -229,7 +230,11 @@ const DeckForm: React.FC = () => {
     if (loading) return <div className="p-8">Loading...</div>;
 
     return (
+        <div className="flex flex-col min-h-screen">
+            <Navbar />
         <AdminLayout>
+
+
             <div className="container mx-auto px-4 py-8">
                 <h1 className="text-3xl font-bold mb-8">Create New Deck</h1>
 
@@ -387,6 +392,7 @@ const DeckForm: React.FC = () => {
                 </div>
             </div>
         </AdminLayout>
+    </div>
     );
 };
 

@@ -63,14 +63,6 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
                 </nav>
 
                 <div className="p-4 border-t border-border">
-                    <Button
-                        variant="outline"
-                        className="w-full flex items-center justify-center"
-                        onClick={handleLogout}
-                    >
-                        <LogOut size={16} className="mr-2" />
-                        Logout
-                    </Button>
                 </div>
             </aside>
 
