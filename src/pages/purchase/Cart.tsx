@@ -1,36 +1,32 @@
 // src/pages/Cart.tsx
 import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { ShoppingCart, Minus, Plus, Trash2 } from 'lucide-react';
-import { useAuth } from '@/supabase/AuthProvider'; // o tu hook/contexto de auth
+import { useAuth } from '@/supabase/AuthProvider';
 import {
     getCart as getRemoteCart,
-    addToCart as addRemote,
     updateQuantity as updateRemoteQty,
     removeFromCart as removeRemote,
     clearCart as clearRemote,
-    checkout as remoteCheckout,
     type CartItem as RemoteCartItem,
-    type Product as RemoteProduct,
 } from '@/data/cart_remote';
 import { getSignedMainImageUrl } from '@/data/decks_remote';
 
 // ------------ Tipos para carrito anónimo ------------
 type LocalCartItem = {
-    id: string; // uuid-like generado localmente
+    id: string;
     product_id: string;
     name: string;
     price: number;
     quantity: number;
-    // Para anónimo guardamos una URL usable directamente (si la tienes ya firmada/pública)
     imageUrl?: string | null;
 };
 
 const LOCAL_CART_KEY = 'cart_items_v1';
 
-// Utilidades localStorage
 function loadLocalCart(): LocalCartItem[] {
     try {
         const raw = localStorage.getItem(LOCAL_CART_KEY);
@@ -57,18 +53,17 @@ function updateLocalQty(id: string, quantity: number) {
 
 // ------------- Cart page -------------
 const Cart: React.FC = () => {
-    const { user } = useAuth(); // { user?.id } si estás logueado
+    const { user } = useAuth();
     const isAuthed = Boolean(user?.id);
+    const navigate = useNavigate();
 
-    // Estado para carrito remoto y local
     const [remoteItems, setRemoteItems] = useState<RemoteCartItem[]>([]);
     const [localItems, setLocalItems] = useState<LocalCartItem[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
-
-    // Mapa de URLs firmadas para items remotos por cart_item.id
+    const [checkoutLoading, setCheckoutLoading] = useState<boolean>(false);
+    const [checkoutError, setCheckoutError] = useState<string | null>(null);
     const [resolvedUrls, setResolvedUrls] = useState<Record<string, string>>({});
 
-    // Carga inicial del carrito
     useEffect(() => {
         let cancelled = false;
         (async () => {
@@ -87,12 +82,9 @@ const Cart: React.FC = () => {
                 if (!cancelled) setLoading(false);
             }
         })();
-        return () => {
-            cancelled = true;
-        };
+        return () => { cancelled = true; };
     }, [isAuthed]);
 
-    // Resolver imágenes firmadas para carrito remoto (como haces en Catalog)
     useEffect(() => {
         if (!isAuthed || remoteItems.length === 0) {
             setResolvedUrls({});
@@ -113,12 +105,9 @@ const Cart: React.FC = () => {
                 console.error('resolve signed urls error:', e);
             }
         })();
-        return () => {
-            cancelled = true;
-        };
+        return () => { cancelled = true; };
     }, [isAuthed, remoteItems]);
 
-    // Totales
     const subtotal = useMemo(() => {
         if (isAuthed) {
             return remoteItems.reduce((sum, it) => {
@@ -135,34 +124,44 @@ const Cart: React.FC = () => {
         const item = remoteItems.find((i) => i.id === itemId);
         if (!item) return;
         await updateRemoteQty(itemId, item.quantity + 1);
-        // refrescar lista
-        const items = await getRemoteCart();
-        setRemoteItems(items);
+        setRemoteItems(await getRemoteCart());
     };
     const decRemote = async (itemId: string) => {
         const item = remoteItems.find((i) => i.id === itemId);
         if (!item) return;
-        const nextQty = item.quantity - 1;
-        await updateRemoteQty(itemId, nextQty);
-        const items = await getRemoteCart();
-        setRemoteItems(items);
+        await updateRemoteQty(itemId, item.quantity - 1);
+        setRemoteItems(await getRemoteCart());
     };
     const removeRemoteItem = async (itemId: string) => {
         await removeRemote(itemId);
-        const items = await getRemoteCart();
-        setRemoteItems(items);
+        setRemoteItems(await getRemoteCart());
     };
     const clearRemoteCartNow = async () => {
         await clearRemote();
         setRemoteItems([]);
     };
+
+    // ✅ Checkout con Stripe via n8n
     const checkout = async () => {
         try {
-            const result = await remoteCheckout();
-            console.log('Order complete:', result);
-            // Redirigir a order success, Stripe, etc.
+            setCheckoutLoading(true);
+            setCheckoutError(null);
+
+            const response = await fetch(`${import.meta.env.VITE_N8N_WEBHOOK_URL}/create-payment-intent`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: user?.id }),
+            });
+
+            if (!response.ok) throw new Error('Error creating payment intent');
+
+            const { clientSecret, orderId } = await response.json();
+            navigate('/checkout', { state: { clientSecret, orderId } });
         } catch (e) {
             console.error('Checkout error:', e);
+            setCheckoutError('Error al iniciar el pago. Inténtalo de nuevo.');
+        } finally {
+            setCheckoutLoading(false);
         }
     };
 
@@ -170,19 +169,15 @@ const Cart: React.FC = () => {
     const incLocal = (id: string) => {
         const item = localItems.find((i) => i.id === id);
         if (!item) return;
-        const nextQty = item.quantity + 1;
-        updateLocalQty(id, nextQty);
+        updateLocalQty(id, item.quantity + 1);
         setLocalItems(loadLocalCart());
     };
     const decLocal = (id: string) => {
         const item = localItems.find((i) => i.id === id);
         if (!item) return;
         const nextQty = item.quantity - 1;
-        if (nextQty < 1) {
-            removeLocalItem(id);
-        } else {
-            updateLocalQty(id, nextQty);
-        }
+        if (nextQty < 1) removeLocalItem(id);
+        else updateLocalQty(id, nextQty);
         setLocalItems(loadLocalCart());
     };
     const removeLocal = (id: string) => {
@@ -194,7 +189,6 @@ const Cart: React.FC = () => {
         setLocalItems([]);
     };
 
-    // Render helpers
     const renderRemoteThumb = (it: RemoteCartItem) => {
         const url = resolvedUrls[it.id];
         return url ? (
@@ -207,9 +201,8 @@ const Cart: React.FC = () => {
     };
 
     const renderLocalThumb = (it: LocalCartItem) => {
-        const url = it.imageUrl;
-        return url ? (
-            <img src={url} alt={it.name} className="w-full h-full object-cover" />
+        return it.imageUrl ? (
+            <img src={it.imageUrl} alt={it.name} className="w-full h-full object-cover" />
         ) : (
             <div className="w-full h-full flex items-center justify-center text-muted-foreground">
                 <ShoppingCart size={32} />
@@ -248,48 +241,26 @@ const Cart: React.FC = () => {
                                     ) : (
                                         <div className="space-y-3">
                                             {remoteItems.map((item) => (
-                                                <div
-                                                    key={item.id}
-                                                    className="flex items-center gap-4 p-3 rounded-lg border border-border"
-                                                >
-                                                    <div className="w-20 h-20 rounded overflow-hidden flex-shrink-0 bg-muted">
+                                                <div key={item.id} className="flex items-center gap-4 p-3 rounded-lg border border-border">
+                                                    <div className="w-28 flex-shrink-0 rounded overflow-hidden bg-muted" style={{ aspectRatio: '3/2' }}>
                                                         {renderRemoteThumb(item)}
                                                     </div>
-
                                                     <div className="flex-1 min-w-0">
                                                         <div className="font-medium truncate">{item.product?.name}</div>
                                                         <div className="text-sm text-muted-foreground">
                                                             €{Number(item.product?.price ?? 0).toFixed(2)}
                                                         </div>
                                                     </div>
-
                                                     <div className="flex items-center gap-2">
-                                                        <Button
-                                                            variant="outline"
-                                                            size="icon"
-                                                            onClick={() => decRemote(item.id)}
-                                                            aria-label="Decrease quantity"
-                                                        >
+                                                        <Button variant="outline" size="icon" onClick={() => decRemote(item.id)} aria-label="Decrease quantity">
                                                             <Minus size={16} />
                                                         </Button>
                                                         <div className="w-8 text-center">{item.quantity}</div>
-                                                        <Button
-                                                            variant="outline"
-                                                            size="icon"
-                                                            onClick={() => incRemote(item.id)}
-                                                            aria-label="Increase quantity"
-                                                        >
+                                                        <Button variant="outline" size="icon" onClick={() => incRemote(item.id)} aria-label="Increase quantity">
                                                             <Plus size={16} />
                                                         </Button>
                                                     </div>
-
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="text-destructive"
-                                                        onClick={() => removeRemoteItem(item.id)}
-                                                        aria-label="Remove item"
-                                                    >
+                                                    <Button variant="ghost" size="icon" className="text-destructive" onClick={() => removeRemoteItem(item.id)} aria-label="Remove item">
                                                         <Trash2 size={18} />
                                                     </Button>
                                                 </div>
@@ -301,48 +272,26 @@ const Cart: React.FC = () => {
                                 ) : (
                                     <div className="space-y-3">
                                         {localItems.map((item) => (
-                                            <div
-                                                key={item.id}
-                                                className="flex items-center gap-4 p-3 rounded-lg border border-border"
-                                            >
-                                                <div className="w-20 h-20 rounded overflow-hidden flex-shrink-0 bg-muted">
+                                            <div key={item.id} className="flex items-center gap-4 p-3 rounded-lg border border-border">
+                                                <div className="w-28 flex-shrink-0 rounded overflow-hidden bg-muted" style={{ aspectRatio: '3/2' }}>
                                                     {renderLocalThumb(item)}
                                                 </div>
-
                                                 <div className="flex-1 min-w-0">
                                                     <div className="font-medium truncate">{item.name}</div>
                                                     <div className="text-sm text-muted-foreground">
                                                         €{Number(item.price ?? 0).toFixed(2)}
                                                     </div>
                                                 </div>
-
                                                 <div className="flex items-center gap-2">
-                                                    <Button
-                                                        variant="outline"
-                                                        size="icon"
-                                                        onClick={() => decLocal(item.id)}
-                                                        aria-label="Decrease quantity"
-                                                    >
+                                                    <Button variant="outline" size="icon" onClick={() => decLocal(item.id)} aria-label="Decrease quantity">
                                                         <Minus size={16} />
                                                     </Button>
                                                     <div className="w-8 text-center">{item.quantity}</div>
-                                                    <Button
-                                                        variant="outline"
-                                                        size="icon"
-                                                        onClick={() => incLocal(item.id)}
-                                                        aria-label="Increase quantity"
-                                                    >
+                                                    <Button variant="outline" size="icon" onClick={() => incLocal(item.id)} aria-label="Increase quantity">
                                                         <Plus size={16} />
                                                     </Button>
                                                 </div>
-
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="text-destructive"
-                                                    onClick={() => removeLocal(item.id)}
-                                                    aria-label="Remove item"
-                                                >
+                                                <Button variant="ghost" size="icon" className="text-destructive" onClick={() => removeLocal(item.id)} aria-label="Remove item">
                                                     <Trash2 size={18} />
                                                 </Button>
                                             </div>
@@ -351,18 +300,11 @@ const Cart: React.FC = () => {
                                 )}
                             </div>
 
-                            {/* Clear cart */}
                             {!loading && (
                                 <div className="mt-3">
-                                    {isAuthed ? (
-                                        <Button variant="outline" onClick={clearRemoteCartNow}>
-                                            Clear Cart
-                                        </Button>
-                                    ) : (
-                                        <Button variant="outline" onClick={clearLocal}>
-                                            Clear Cart
-                                        </Button>
-                                    )}
+                                    <Button variant="outline" onClick={isAuthed ? clearRemoteCartNow : clearLocal}>
+                                        Clear Cart
+                                    </Button>
                                 </div>
                             )}
                         </div>
@@ -384,10 +326,19 @@ const Cart: React.FC = () => {
                                     <span>€{subtotal.toFixed(2)}</span>
                                 </div>
                                 {isAuthed ? (
-                                    <Button className="w-full" onClick={checkout} disabled={loading || remoteItems.length === 0}>
-                                        <ShoppingCart className="mr-2 h-4 w-4" />
-                                        Checkout
-                                    </Button>
+                                    <div className="space-y-2">
+                                        <Button
+                                            className="w-full"
+                                            onClick={checkout}
+                                            disabled={loading || checkoutLoading || remoteItems.length === 0}
+                                        >
+                                            <ShoppingCart className="mr-2 h-4 w-4" />
+                                            {checkoutLoading ? 'Procesando...' : 'Checkout'}
+                                        </Button>
+                                        {checkoutError && (
+                                            <p className="text-destructive text-sm text-center">{checkoutError}</p>
+                                        )}
+                                    </div>
                                 ) : (
                                     <div className="text-sm text-muted-foreground">
                                         Please sign in to checkout.

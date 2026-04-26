@@ -16,7 +16,7 @@ import { supabase } from '@/supabase/supabase-client.ts';
 import 'mana-font/css/mana.css';
 import Navbar from "@/components/Navbar.tsx";
 
-const N8N_API_KEY = import.meta.env.N8N_API_KEY;
+
 
 // Helpers imágenes
 async function convertToJpg(file: File, quality = 0.8): Promise<File> {
@@ -198,15 +198,21 @@ const DeckForm: React.FC = () => {
                 created_by: user?.id ?? null,
             };
 
-            const res = await fetch('http://192.168.1.134:5679/webhook/deck-process', {
+
+            const { data: sessionData } = await supabase.auth.getSession(); // Renombramos de 'data' a 'sessionData'
+            const token = sessionData.session?.access_token;
+            const res = await fetch(`${import.meta.env.VITE_N8N_WEBHOOK_URL}/deck-process`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'N8N_API_KEY': N8N_API_KEY },
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
                 body: JSON.stringify(payload),
             });
             if (!res.ok) throw new Error(`Webhook failed: ${res.status} ${res.statusText}`);
-            const data = await res.json();
+            const responseData = await res.json(); // Usamos un nombre nuevo como
 
-            toast({ title: 'Deck created', description: `Deck creado con id ${data.id} y ${deckImagePaths.length} imágenes.` });
+            toast({ title: 'Deck created', description: `Deck creado con id ${responseData.id} y ${deckImagePaths.length} imágenes.` });
             navigate('/admin/decks');
         } catch (err: any) {
             console.error('Error en onSubmit:', err);

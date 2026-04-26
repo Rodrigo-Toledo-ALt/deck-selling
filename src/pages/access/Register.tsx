@@ -9,22 +9,22 @@ import {
     FormItem,
     FormLabel,
     FormMessage
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+} from '@/components/ui/form.tsx';
+import { Input } from '@/components/ui/input.tsx';
+import { Button } from '@/components/ui/button.tsx';
 import {
     Popover,
     PopoverContent,
     PopoverTrigger,
-} from '@/components/ui/popover';
+} from '@/components/ui/popover.tsx';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
-import { useAuth } from '@/supabase/AuthProvider';
+import { useToast } from '@/hooks/use-toast.ts';
+import { cn } from '@/lib/utils.ts';
+import Navbar from '@/components/Navbar.tsx';
+import Footer from '@/components/Footer.tsx';
+import { useAuth } from '@/supabase/AuthProvider.tsx';
 
 import { DayPicker } from 'react-day-picker';
 import 'react-day-picker/dist/style.css';

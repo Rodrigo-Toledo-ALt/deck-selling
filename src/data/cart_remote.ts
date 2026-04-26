@@ -128,37 +128,3 @@ export async function clearCart() {
     return true;
 }
 
-export async function checkout() {
-    const userId = await getUserId();
-    if (!userId) throw new Error('Not authenticated');
-
-    const items = await getCart();
-    if (items.length === 0) throw new Error('Cart is empty');
-
-    const total = items.reduce((sum, it) => sum + (it.product?.price ? Number(it.product.price) : 0) * it.quantity, 0);
-
-    const { data: order, error: ordErr } = await supabase
-        .from('orders')
-        .insert({
-            user_id: userId,
-            total_amount: total,
-            order_date: new Date().toISOString(),
-        })
-        .select('id')
-        .single();
-    if (ordErr) throw ordErr;
-
-    const orderItems = items.map(it => ({
-        order_id: order.id,
-        product_id: it.product_id,
-        quantity: it.quantity,
-        price: it.product?.price ?? 0, // snapshot
-    }));
-
-    const { error: oiErr } = await supabase.from('order_items').insert(orderItems);
-    if (oiErr) throw oiErr;
-
-    await clearCart();
-
-    return { order_id: order.id, total };
-}

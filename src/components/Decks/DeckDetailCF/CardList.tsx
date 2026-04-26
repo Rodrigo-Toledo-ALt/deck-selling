@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
 import { CardInfo } from "@/data/deckData.ts";
-import { renderManaCost } from "@/utils/methods.tsx";
+import { renderManaCost } from "@/utils/mana.tsx";
 import { GiReturnArrow } from "react-icons/gi";
     
 

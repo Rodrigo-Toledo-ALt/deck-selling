@@ -12,20 +12,14 @@ import {
     updateMe,
     updateMyEmail,
     getMyAddresses,
-    getMyPaymentMethods,
     changeMyPassword,
     createMyAddress,
     updateMyAddress,
     deleteMyAddress,
-    createMyPaymentMethod,
-    updateMyPaymentMethod,
-    deleteMyPaymentMethod,
     type MeProfile,
     type MyAddress,
-    type MyPaymentMethod,
 } from '@/data/account_remote';
 import Navbar from "@/components/Navbar.tsx";
-
 
 const AccountProfile: React.FC = () => {
     const { toast } = useToast();
@@ -33,7 +27,6 @@ const AccountProfile: React.FC = () => {
     const [saving, setSaving] = useState(false);
     const [profile, setProfile] = useState<MeProfile | null>(null);
     const [addresses, setAddresses] = useState<MyAddress[]>([]);
-    const [paymentMethods, setPaymentMethods] = useState<MyPaymentMethod[]>([]);
     const [username, setUsername] = useState('');
     const [emailDraft, setEmailDraft] = useState('');
     const [newPassword, setNewPassword] = useState('');
@@ -49,28 +42,17 @@ const AccountProfile: React.FC = () => {
         country: '',
     });
 
-    // Payment method dialog state
-    const [pmDialogOpen, setPmDialogOpen] = useState(false);
-    const [pmEditing, setPmEditing] = useState<MyPaymentMethod | null>(null);
-    const [pmForm, setPmForm] = useState<Omit<MyPaymentMethod, 'id'>>({
-        card_type: '',
-        expiry_date: '',
-        billing_address_id: '',
-    });
-
     useEffect(() => {
         (async () => {
             setLoading(true);
             const me = await getMe();
             const addrs = await getMyAddresses();
-            const pms = await getMyPaymentMethods();
             if (me) {
                 setProfile(me);
                 setUsername(me.username);
                 setEmailDraft(me.email);
             }
             setAddresses(addrs);
-            setPaymentMethods(pms);
             setLoading(false);
         })();
     }, []);
@@ -119,9 +101,8 @@ const AccountProfile: React.FC = () => {
 
     // Helpers
     const reloadAddresses = async () => setAddresses(await getMyAddresses());
-    const reloadPaymentMethods = async () => setPaymentMethods(await getMyPaymentMethods());
 
-    // Address dialog open/prepare
+    // Address dialog
     const openAddAddress = () => {
         setAddrEditing(null);
         setAddrForm({ address: '', city: '', state: '', postal_code: '', country: '' });
@@ -129,90 +110,27 @@ const AccountProfile: React.FC = () => {
     };
     const openEditAddress = (a: MyAddress) => {
         setAddrEditing(a);
-        setAddrForm({
-            address: a.address,
-            city: a.city,
-            state: a.state,
-            postal_code: a.postal_code,
-            country: a.country,
-        });
+        setAddrForm({ address: a.address, city: a.city, state: a.state, postal_code: a.postal_code, country: a.country });
         setAddrDialogOpen(true);
     };
-
-    // Address submit/delete
     const submitAddress = async () => {
         let ok = false;
         if (addrEditing) {
             ok = await updateMyAddress(addrEditing.id, addrForm);
-            ok
-                ? toast({ title: 'Address updated' })
-                : toast({ title: 'Error', description: 'Could not update address', variant: 'destructive' });
+            ok ? toast({ title: 'Address updated' }) : toast({ title: 'Error', description: 'Could not update address', variant: 'destructive' });
         } else {
             ok = await createMyAddress(addrForm);
-            ok
-                ? toast({ title: 'Address added' })
-                : toast({ title: 'Error', description: 'Could not add address', variant: 'destructive' });
+            ok ? toast({ title: 'Address added' }) : toast({ title: 'Error', description: 'Could not add address', variant: 'destructive' });
         }
         if (ok) await reloadAddresses();
         setAddrDialogOpen(false);
         setAddrEditing(null);
     };
-
     const removeAddress = async (id: string) => {
         if (!confirm('Delete this address?')) return;
         const ok = await deleteMyAddress(id);
-        if (ok) {
-            toast({ title: 'Address deleted' });
-            await reloadAddresses();
-        } else {
-            toast({ title: 'Error', description: 'Could not delete address', variant: 'destructive' });
-        }
-    };
-
-    // Payment method dialog open/prepare
-    const openAddPM = () => {
-        setPmEditing(null);
-        setPmForm({ card_type: '', expiry_date: '', billing_address_id: '' });
-        setPmDialogOpen(true);
-    };
-    const openEditPM = (pm: MyPaymentMethod) => {
-        setPmEditing(pm);
-        setPmForm({
-            card_type: pm.card_type,
-            expiry_date: pm.expiry_date,
-            billing_address_id: pm.billing_address_id,
-        });
-        setPmDialogOpen(true);
-    };
-
-    // Payment method submit/delete
-    const submitPM = async () => {
-        let ok = false;
-        if (pmEditing) {
-            ok = await updateMyPaymentMethod(pmEditing.id, pmForm);
-            ok
-                ? toast({ title: 'Payment method updated' })
-                : toast({ title: 'Error', description: 'Could not update payment method', variant: 'destructive' });
-        } else {
-            ok = await createMyPaymentMethod(pmForm);
-            ok
-                ? toast({ title: 'Payment method added' })
-                : toast({ title: 'Error', description: 'Could not add payment method', variant: 'destructive' });
-        }
-        if (ok) await reloadPaymentMethods();
-        setPmDialogOpen(false);
-        setPmEditing(null);
-    };
-
-    const removePM = async (id: string) => {
-        if (!confirm('Delete this payment method?')) return;
-        const ok = await deleteMyPaymentMethod(id);
-        if (ok) {
-            toast({ title: 'Payment method deleted' });
-            await reloadPaymentMethods();
-        } else {
-            toast({ title: 'Error', description: 'Could not delete payment method', variant: 'destructive' });
-        }
+        if (ok) { toast({ title: 'Address deleted' }); await reloadAddresses(); }
+        else toast({ title: 'Error', description: 'Could not delete address', variant: 'destructive' });
     };
 
     if (loading) return <div className="p-6 text-center">Loading...</div>;
@@ -256,9 +174,7 @@ const AccountProfile: React.FC = () => {
 
                 {/* ADDRESSES */}
                 <Card>
-                    <CardHeader>
-                        <CardTitle>Addresses</CardTitle>
-                    </CardHeader>
+                    <CardHeader><CardTitle>Addresses</CardTitle></CardHeader>
                     <CardContent>
                         {addresses.length === 0 ? (
                             <p className="text-sm text-muted-foreground">No addresses saved.</p>
@@ -271,66 +187,16 @@ const AccountProfile: React.FC = () => {
                                             <div className="text-muted-foreground">{a.city}, {a.state} {a.postal_code}, {a.country}</div>
                                         </div>
                                         <div className="flex gap-2">
-                                            <Button size="icon" variant="outline" onClick={() => openEditAddress(a)}>
-                                                <Pencil className="w-4 h-4" />
-                                            </Button>
-                                            <Button size="icon" variant="destructive" onClick={() => removeAddress(a.id)}>
-                                                <Trash2 className="w-4 h-4" />
-                                            </Button>
+                                            <Button size="icon" variant="outline" onClick={() => openEditAddress(a)}><Pencil className="w-4 h-4" /></Button>
+                                            <Button size="icon" variant="destructive" onClick={() => removeAddress(a.id)}><Trash2 className="w-4 h-4" /></Button>
                                         </div>
                                     </li>
                                 ))}
                             </ul>
                         )}
-
-                        {/* Add under list */}
                         <div className="mt-4">
-                            <Button onClick={openAddAddress}>
-                                <Plus className="w-4 h-4 mr-1" /> Add address
-                            </Button>
+                            <Button onClick={openAddAddress}><Plus className="w-4 h-4 mr-1" /> Add address</Button>
                         </div>
-                    </CardContent>
-                </Card>
-
-                {/* PAYMENT METHODS */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Payment Methods</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        {paymentMethods.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">No payment methods.</p>
-                        ) : (
-                            <ul className="space-y-2">
-                                {paymentMethods.map(pm => (
-                                    <li key={pm.id} className="flex items-start justify-between gap-3 border rounded-md p-3">
-                                        <div className="text-sm">
-                                            <div>{pm.card_type} • Expires {pm.expiry_date}</div>
-                                            <div className="text-muted-foreground">Billing address: {pm.billing_address_id}</div>
-                                        </div>
-                                        <div className="flex gap-2">
-                                            <Button size="icon" variant="outline" onClick={() => openEditPM(pm)}>
-                                                <Pencil className="w-4 h-4" />
-                                            </Button>
-                                            <Button size="icon" variant="destructive" onClick={() => removePM(pm.id)}>
-                                                <Trash2 className="w-4 h-4" />
-                                            </Button>
-                                        </div>
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
-
-                        {/* Add under list */}
-                        <div className="mt-4">
-                            <Button onClick={openAddPM}>
-                                <Plus className="w-4 h-4 mr-1" /> Add payment method
-                            </Button>
-                        </div>
-
-                        <p className="text-xs text-muted-foreground mt-3">
-                            Only payment metadata is stored. Full card numbers are never shown.
-                        </p>
                     </CardContent>
                 </Card>
 
@@ -348,9 +214,7 @@ const AccountProfile: React.FC = () => {
                                     value={newPassword}
                                     onChange={(e) => setNewPassword(e.target.value)}
                                 />
-                                <Button variant="outline" onClick={onChangePassword} disabled={!newPassword}>
-                                    Change
-                                </Button>
+                                <Button variant="outline" onClick={onChangePassword} disabled={!newPassword}>Change</Button>
                             </div>
                         </div>
                         <p className="text-xs text-muted-foreground">
@@ -389,44 +253,8 @@ const AccountProfile: React.FC = () => {
                         </div>
                         <DialogFooter>
                             <Button variant="outline" onClick={() => setAddrDialogOpen(false)}>Cancel</Button>
-                            <Button
-                                onClick={submitAddress}
-                                disabled={!addrForm.address || !addrForm.city || !addrForm.postal_code || !addrForm.country}
-                            >
+                            <Button onClick={submitAddress} disabled={!addrForm.address || !addrForm.city || !addrForm.postal_code || !addrForm.country}>
                                 {addrEditing ? 'Save' : 'Add'}
-                            </Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
-
-                {/* Payment Method Dialog */}
-                <Dialog open={pmDialogOpen} onOpenChange={setPmDialogOpen}>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>{pmEditing ? 'Edit payment method' : 'Add payment method'}</DialogTitle>
-                        </DialogHeader>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            <div>
-                                <Label>Card brand</Label>
-                                <Input placeholder="Visa, MasterCard…" value={pmForm.card_type} onChange={e => setPmForm(v => ({ ...v, card_type: e.target.value }))} />
-                            </div>
-                            <div>
-                                <Label>Expiry (YYYY-MM)</Label>
-                                <Input placeholder="YYYY-MM" value={pmForm.expiry_date} onChange={e => setPmForm(v => ({ ...v, expiry_date: e.target.value }))} />
-                            </div>
-                            <div className="md:col-span-2">
-                                <Label>Billing address</Label>
-                                <Input placeholder="address id" value={pmForm.billing_address_id} onChange={e => setPmForm(v => ({ ...v, billing_address_id: e.target.value }))} />
-                                <p className="text-xs text-muted-foreground mt-1">Tip: cambia este input por un Select que liste tus direcciones.</p>
-                            </div>
-                        </div>
-                        <DialogFooter>
-                            <Button variant="outline" onClick={() => setPmDialogOpen(false)}>Cancel</Button>
-                            <Button
-                                onClick={submitPM}
-                                disabled={!pmForm.card_type || !pmForm.expiry_date || !pmForm.billing_address_id}
-                            >
-                                {pmEditing ? 'Save' : 'Add'}
                             </Button>
                         </DialogFooter>
                     </DialogContent>
