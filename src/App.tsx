@@ -22,6 +22,10 @@ import ClientDetailPage from "@/pages/admin/ClientDetail.tsx";
 import ClientsManagement from "@/pages/admin/ClientsManagement.tsx";
 import AccountProfile from "@/pages/account/AccountProfile.tsx";
 import ProtectedRoute from "@/supabase/ProtectedRoute.tsx";
+import CheckoutPage from "@/pages/purchase/CheckoutPage.tsx";
+import OrderSuccess from "@/pages/purchase/OrderSuccess.tsx";
+import OrdersManagement from "@/pages/admin/OrdersManagement.tsx";
+import OrderDetail from "@/pages/admin/OrderDetail.tsx";
 
 const queryClient = new QueryClient();
 
@@ -42,6 +46,8 @@ const App = () => (
                         <Route path="/cart" element={<Cart />} />
                         <Route path="/login" element={<Login />} />
                         <Route path="/register" element={<Register />} />
+                        <Route path="/checkout" element={<CheckoutPage />} />
+                        <Route path="/order-success" element={<OrderSuccess />} />
                         {/* User Routes */}
                         <Route path="/account" element={<ProtectedRoute><AccountProfile /></ProtectedRoute>} />
                         {/* Admin Routes */}
@@ -51,6 +57,8 @@ const App = () => (
                         <Route path="/admin/clients" element={<ProtectedAdminRoute><ClientManagement /></ProtectedAdminRoute>}/>
                         <Route path="/admin/clients" element={<ProtectedAdminRoute><ClientsManagement /></ProtectedAdminRoute>} />
                         <Route path="/admin/clients/:id" element={<ProtectedAdminRoute><ClientDetailPage /></ProtectedAdminRoute>} />
+                        <Route path="/admin/orders" element={<OrdersManagement />} />
+                        <Route path="/admin/orders/:id" element={<OrderDetail />} />
                         {/* Catch-all route */}
                         <Route path="*" element={<NotFound />} />
                     </Routes>

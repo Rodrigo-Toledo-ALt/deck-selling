@@ -36,6 +36,7 @@ const DeckCard: React.FC<DeckCardProps> = ({ deck, imageUrl }) => {
                     1
                 );
             }
+            window.dispatchEvent(new Event('cartUpdated'));
             toast({
                 title: 'Added to cart',
                 description: `${deck.name} has been added to your cart.`,

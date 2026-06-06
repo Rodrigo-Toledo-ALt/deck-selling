@@ -6,6 +6,12 @@ import DeckHeader from '@/components/Decks/DeckDetailCF/DeckHeader';
 import CardList from '@/components/Decks/DeckDetailCF/CardList';
 import ImageFlip from '@/components/ImageFlip';
 import { renderManaCost } from '@/utils/mana.tsx';
+import { Button } from '@/components/ui/button';
+import { ShoppingCart } from 'lucide-react';
+import { useAuth } from '@/supabase/AuthProvider';
+import { addToCart } from '@/data/cart_remote';
+import { addToLocalCart } from '@/data/local_cart';
+import { useToast } from '@/components/ui/use-toast';
 import {
     getDeckById,
     getSignedMainImageUrl,
@@ -24,6 +30,8 @@ type DeckDataWithSigned = {
 
 const DeckDetail: React.FC = () => {
     const { id } = useParams();
+    const { user } = useAuth();
+    const { toast } = useToast();
 
     const [deck, setDeck] = useState<Deck | null>(null);
     const [signedMainImage, setSignedMainImage] = useState<string>('');
@@ -31,6 +39,34 @@ const DeckDetail: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [currentCard, setCurrentCard] = useState<CardInfoWithSigned | null>(null);
     const [isFlip, setIsFlip] = useState(false);
+    const [isAdding, setIsAdding] = useState(false);
+
+    const handleAddToCart = async () => {
+        if (!deck) return;
+        setIsAdding(true);
+        try {
+            if (user) {
+                await addToCart(deck.id, 1);
+            } else {
+                addToLocalCart(deck.id, deck.name, deck.price, signedMainImage || deck.imageUrl || null, 1);
+            }
+            window.dispatchEvent(new Event('cartUpdated'));
+            toast({
+                title: 'Added to cart',
+                description: `${deck.name} has been added to your cart.`,
+                duration: 3000,
+            });
+        } catch (err) {
+            console.error('Error adding to cart:', err);
+            toast({
+                title: 'Error',
+                description: 'Could not add item to cart. Please try again.',
+                variant: 'destructive',
+            });
+        } finally {
+            setIsAdding(false);
+        }
+    };
 
     useEffect(() => {
         let alive = true;
@@ -190,9 +226,10 @@ const DeckDetail: React.FC = () => {
                 <DeckHeader deck={deck} imageUrl={signedMainImage} />
 
                 <div className="grid lg:grid-cols-4 gap-6">
-                    <div className="lg:col-span-1">
-                        <div className="bg-secondary border-0 sticky top-20 mt-4 rounded-lg shadow-lg">
-                            <div className="text-center p-4">
+                    <div className="lg:col-span-1 ">
+                        <div className="sticky top-20 mt-4 space-y-4">
+                            {/* Card Display Box */}
+                            <div className="bg-secondary border-0 rounded-lg shadow-lg p-4 text-center">
                                 <div className="relative mx-auto w-full max-w-64 aspect-[5/7] rounded-lg overflow-hidden border-2 border-border shadow-lg">
                                     <ImageFlip
                                         frontImage={currentCard?.faces[0].signedUrl || ''}
@@ -209,6 +246,23 @@ const DeckDetail: React.FC = () => {
                                 <div className="flex justify-center gap-2 mt-2">
                                     {currentCard ? renderManaCost(currentCard.faces[0].manaCost) : null}
                                 </div>
+                            </div>
+
+                            {/* Purchase Section - Now outside the secondary box */}
+                            <div className="bg-card border border-border rounded-lg p-4 shadow-md flex items-center justify-between gap-4">
+                                <div className="flex flex-col">
+                                    <span className="text-xs text-muted-foreground uppercase font-semibold">Total Price</span>
+                                    <span className="font-bold text-2xl text-primary">€{deck.price}</span>
+                                </div>
+                                <Button
+                                    size="lg"
+                                    onClick={handleAddToCart}
+                                    disabled={isAdding}
+                                    className="flex-1 flex items-center justify-center gap-2"
+                                >
+                                    <ShoppingCart className="w-5 h-5" />
+                                    {isAdding ? 'Adding...' : 'Add to Cart'}
+                                </Button>
                             </div>
                         </div>
                     </div>

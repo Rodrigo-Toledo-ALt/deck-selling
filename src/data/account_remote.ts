@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/supabase/supabase-client.ts';
 
 // ======================================================
 // USER PROFILE
@@ -72,11 +72,13 @@ export async function changeMyPassword(newPassword: string): Promise<boolean> {
 
 export interface MyAddress {
     id: string;
+    full_name: string;
     address: string;
     city: string;
     state: string;
     postal_code: string;
     country: string;
+    is_default: boolean;
 }
 
 export async function getMyAddresses(): Promise<MyAddress[]> {
@@ -86,9 +88,9 @@ export async function getMyAddresses(): Promise<MyAddress[]> {
 
     const { data, error } = await supabase
         .from('addresses')
-        .select('id, address, city, state, postal_code, country')
+        .select('id, full_name, address, city, state, postal_code, country, is_default')
         .eq('user_id', userId)
-        .order('id', { ascending: true });
+        .order('is_default', { ascending: false });
 
     if (error) {
         console.error('getMyAddresses error:', error);
@@ -130,6 +132,21 @@ export async function updateMyAddress(
 
     if (error) {
         console.error('updateMyAddress error:', error);
+        return false;
+    }
+    return true;
+}
+
+export async function setDefaultAddress(addressId: string): Promise<boolean> {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return false;
+
+    const { error } = await supabase.functions.invoke('set-default-address', {
+        body: { addressId },
+    });
+
+    if (error) {
+        console.error('setDefaultAddress error:', error);
         return false;
     }
     return true;

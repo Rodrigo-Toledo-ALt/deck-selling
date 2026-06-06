@@ -6,7 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Star } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import {
     getMe,
     updateMe,
@@ -16,6 +17,7 @@ import {
     createMyAddress,
     updateMyAddress,
     deleteMyAddress,
+    setDefaultAddress,
     type MeProfile,
     type MyAddress,
 } from '@/data/account_remote';
@@ -34,7 +36,8 @@ const AccountProfile: React.FC = () => {
     // Address dialog state
     const [addrDialogOpen, setAddrDialogOpen] = useState(false);
     const [addrEditing, setAddrEditing] = useState<MyAddress | null>(null);
-    const [addrForm, setAddrForm] = useState<Omit<MyAddress, 'id'>>({
+    const [addrForm, setAddrForm] = useState<Omit<MyAddress, 'id' | 'is_default'>>({
+        full_name: '',
         address: '',
         city: '',
         state: '',
@@ -105,13 +108,18 @@ const AccountProfile: React.FC = () => {
     // Address dialog
     const openAddAddress = () => {
         setAddrEditing(null);
-        setAddrForm({ address: '', city: '', state: '', postal_code: '', country: '' });
+        setAddrForm({ full_name: '', address: '', city: '', state: '', postal_code: '', country: '' });
         setAddrDialogOpen(true);
     };
     const openEditAddress = (a: MyAddress) => {
         setAddrEditing(a);
-        setAddrForm({ address: a.address, city: a.city, state: a.state, postal_code: a.postal_code, country: a.country });
+        setAddrForm({ full_name: a.full_name, address: a.address, city: a.city, state: a.state, postal_code: a.postal_code, country: a.country });
         setAddrDialogOpen(true);
+    };
+    const onSetDefault = async (id: string) => {
+        const ok = await setDefaultAddress(id);
+        if (ok) { toast({ title: 'Default address updated' }); await reloadAddresses(); }
+        else toast({ title: 'Error', description: 'Could not set default address', variant: 'destructive' });
     };
     const submitAddress = async () => {
         let ok = false;
@@ -173,6 +181,7 @@ const AccountProfile: React.FC = () => {
                 </Card>
 
                 {/* ADDRESSES */}
+                {/* ADDRESSES */}
                 <Card>
                     <CardHeader><CardTitle>Addresses</CardTitle></CardHeader>
                     <CardContent>
@@ -181,14 +190,43 @@ const AccountProfile: React.FC = () => {
                         ) : (
                             <ul className="space-y-2">
                                 {addresses.map(a => (
-                                    <li key={a.id} className="flex items-start justify-between gap-3 border rounded-md p-3">
-                                        <div className="text-sm">
-                                            <div>{a.address}</div>
+                                    <li
+                                        key={a.id}
+                                        onClick={() => !a.is_default && onSetDefault(a.id)}
+                                        className={`flex items-start gap-3 border rounded-md p-3 transition-colors ${
+                                            a.is_default
+                                                ? 'border-primary bg-primary/5 cursor-default'
+                                                : 'cursor-pointer hover:border-primary/50 hover:bg-muted/30'
+                                        }`}
+                                    >
+                                        {/* Radio button */}
+                                        <div className="mt-0.5 flex-shrink-0">
+                                            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${
+                                                a.is_default
+                                                    ? 'border-primary'
+                                                    : 'border-muted-foreground/40'
+                                            }`}>
+                                                {a.is_default && (
+                                                    <div className="w-2 h-2 rounded-full bg-primary" />
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Address info */}
+                                        <div className="text-sm flex-1">
+                                            <div className="font-medium">{a.full_name}</div>
+                                            <div className="text-muted-foreground">{a.address}</div>
                                             <div className="text-muted-foreground">{a.city}, {a.state} {a.postal_code}, {a.country}</div>
                                         </div>
-                                        <div className="flex gap-2">
-                                            <Button size="icon" variant="outline" onClick={() => openEditAddress(a)}><Pencil className="w-4 h-4" /></Button>
-                                            <Button size="icon" variant="destructive" onClick={() => removeAddress(a.id)}><Trash2 className="w-4 h-4" /></Button>
+
+                                        {/* Actions - stop propagation so clicks don't trigger setDefault */}
+                                        <div className="flex gap-2" onClick={e => e.stopPropagation()}>
+                                            <Button size="icon" variant="outline" onClick={() => openEditAddress(a)}>
+                                                <Pencil className="w-4 h-4" />
+                                            </Button>
+                                            <Button size="icon" variant="destructive" onClick={() => removeAddress(a.id)}>
+                                                <Trash2 className="w-4 h-4" />
+                                            </Button>
                                         </div>
                                     </li>
                                 ))}
@@ -230,6 +268,10 @@ const AccountProfile: React.FC = () => {
                             <DialogTitle>{addrEditing ? 'Edit address' : 'Add address'}</DialogTitle>
                         </DialogHeader>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div className="md:col-span-2">
+                                <Label>Full name</Label>
+                                <Input placeholder="Name and surname" value={addrForm.full_name} onChange={e => setAddrForm(v => ({ ...v, full_name: e.target.value }))} />
+                            </div>
                             <div className="md:col-span-2">
                                 <Label>Address</Label>
                                 <Input value={addrForm.address} onChange={e => setAddrForm(v => ({ ...v, address: e.target.value }))} />

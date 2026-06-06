@@ -9,7 +9,7 @@ import {
     AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { loadLocalCart, type LocalCartItem } from '@/data/local_cart';
-import { supabase } from '@/supabase/supabase-client.ts'; // ajusta el path si es diferente
+import { supabase } from '@/supabase/supabase-client.ts';
 
 function getTotalCount(items: LocalCartItem[]) {
     return items.reduce((acc, it) => acc + it.quantity, 0);
@@ -28,28 +28,26 @@ const Navbar = () => {
 
     // ── Carrito local (anon) ──────────────────────────────────────────
     useEffect(() => {
-        if (isAuthenticated) return; // no necesitamos polling si está loggeado
+        if (isAuthenticated) return;
         const refresh = () => setLocalItems(loadLocalCart());
         refresh();
         const interval = setInterval(refresh, 600);
-        return () => clearInterval(interval);
+        window.addEventListener('cartUpdated', refresh);
+        return () => {
+            clearInterval(interval);
+            window.removeEventListener('cartUpdated', refresh);
+        };
     }, [isAuthenticated]);
 
     // ── Carrito remoto (loggeado) ─────────────────────────────────────
     const fetchRemoteCount = useCallback(async () => {
-        if (!user) {
-            console.log('fetchRemoteCount: no user, skipping');
-            return;
-        }
-        console.log('fetchRemoteCount: fetching for user', user.id);
+        if (!user) return;
         try {
             const { data: cart, error: cartErr } = await supabase
                 .from('carts')
                 .select('id')
                 .eq('user_id', user.id)
                 .maybeSingle();
-
-            console.log('cart:', cart, 'cartErr:', cartErr);
 
             if (cartErr || !cart) {
                 setRemoteCartCount(0);
@@ -60,8 +58,6 @@ const Navbar = () => {
                 .from('cart_items')
                 .select('quantity')
                 .eq('cart_id', cart.id);
-
-            console.log('cart_items data:', data, 'error:', error);
 
             if (!error && data) {
                 setRemoteCartCount(data.reduce((sum, row) => sum + (row.quantity ?? 1), 0));
@@ -77,8 +73,12 @@ const Navbar = () => {
             return;
         }
         fetchRemoteCount();
-        const interval = setInterval(fetchRemoteCount, 5000); // cada 5s
-        return () => clearInterval(interval);
+        const interval = setInterval(fetchRemoteCount, 5000);
+        window.addEventListener('cartUpdated', fetchRemoteCount);
+        return () => {
+            clearInterval(interval);
+            window.removeEventListener('cartUpdated', fetchRemoteCount);
+        };
     }, [isAuthenticated, fetchRemoteCount]);
 
     // ── Animación sidebar ─────────────────────────────────────────────
@@ -302,7 +302,6 @@ const Navbar = () => {
                             ) : (
                                 localItems.map((item) => (
                                     <div key={item.product_id} className="flex items-center gap-3 p-2 rounded-lg border border-border bg-card">
-                                        {/* Thumbnail — misma proporción que DeckCard (aspect 3/2, object-cover) */}
                                         <div className="w-16 flex-shrink-0 rounded overflow-hidden bg-muted" style={{ aspectRatio: '3/2' }}>
                                             {item.image_url ? (
                                                 <img

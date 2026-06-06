@@ -1,7 +1,7 @@
 import React, { ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { LogOut, Package, Users } from 'lucide-react';
+import {LogOut, Package, ShoppingBag, Users} from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 
 interface AdminLayoutProps {
@@ -29,6 +29,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
     const adminMenuItems = [
         { path: '/admin/decks', label: 'Decks', icon: <Package size={18} /> },
         { path: '/admin/clients', label: 'Clients', icon: <Users size={18} /> },
+        { path: '/admin/orders', label: 'Orders', icon: <ShoppingBag size={18} /> },
     ];
 
     return (

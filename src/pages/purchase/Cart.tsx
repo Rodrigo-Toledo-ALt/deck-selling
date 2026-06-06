@@ -14,8 +14,8 @@ import {
     type CartItem as RemoteCartItem,
 } from '@/data/cart_remote';
 import { getSignedMainImageUrl } from '@/data/decks_remote';
+import { supabase } from "@/supabase/supabase-client.ts";
 
-// ------------ Tipos para carrito anónimo ------------
 type LocalCartItem = {
     id: string;
     product_id: string;
@@ -51,7 +51,6 @@ function updateLocalQty(id: string, quantity: number) {
     saveLocalCart(items);
 }
 
-// ------------- Cart page -------------
 const Cart: React.FC = () => {
     const { user } = useAuth();
     const isAuthed = Boolean(user?.id);
@@ -125,37 +124,53 @@ const Cart: React.FC = () => {
         if (!item) return;
         await updateRemoteQty(itemId, item.quantity + 1);
         setRemoteItems(await getRemoteCart());
+        window.dispatchEvent(new Event('cartUpdated'));
     };
+
     const decRemote = async (itemId: string) => {
         const item = remoteItems.find((i) => i.id === itemId);
         if (!item) return;
         await updateRemoteQty(itemId, item.quantity - 1);
         setRemoteItems(await getRemoteCart());
+        window.dispatchEvent(new Event('cartUpdated'));
     };
+
     const removeRemoteItem = async (itemId: string) => {
         await removeRemote(itemId);
         setRemoteItems(await getRemoteCart());
+        window.dispatchEvent(new Event('cartUpdated'));
     };
+
     const clearRemoteCartNow = async () => {
         await clearRemote();
         setRemoteItems([]);
+        window.dispatchEvent(new Event('cartUpdated'));
     };
 
-    // ✅ Checkout con Stripe via n8n
+    // Checkout con Stripe via n8n
     const checkout = async () => {
         try {
             setCheckoutLoading(true);
             setCheckoutError(null);
 
+            const { data: sessionData } = await supabase.auth.getSession();
+            const token = sessionData.session?.access_token;
+
             const response = await fetch(`${import.meta.env.VITE_N8N_WEBHOOK_URL}/create-payment-intent`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                },
                 body: JSON.stringify({ userId: user?.id }),
             });
 
             if (!response.ok) throw new Error('Error creating payment intent');
 
-            const { clientSecret, orderId } = await response.json();
+            const data = await response.json();
+            console.log('Respuesta RAW de n8n:', data);
+
+            const { clientSecret, orderId } = data;
             navigate('/checkout', { state: { clientSecret, orderId } });
         } catch (e) {
             console.error('Checkout error:', e);
@@ -171,7 +186,9 @@ const Cart: React.FC = () => {
         if (!item) return;
         updateLocalQty(id, item.quantity + 1);
         setLocalItems(loadLocalCart());
+        window.dispatchEvent(new Event('cartUpdated'));
     };
+
     const decLocal = (id: string) => {
         const item = localItems.find((i) => i.id === id);
         if (!item) return;
@@ -179,14 +196,19 @@ const Cart: React.FC = () => {
         if (nextQty < 1) removeLocalItem(id);
         else updateLocalQty(id, nextQty);
         setLocalItems(loadLocalCart());
+        window.dispatchEvent(new Event('cartUpdated'));
     };
+
     const removeLocal = (id: string) => {
         removeLocalItem(id);
         setLocalItems(loadLocalCart());
+        window.dispatchEvent(new Event('cartUpdated'));
     };
+
     const clearLocal = () => {
         clearLocalCart();
         setLocalItems([]);
+        window.dispatchEvent(new Event('cartUpdated'));
     };
 
     const renderRemoteThumb = (it: RemoteCartItem) => {

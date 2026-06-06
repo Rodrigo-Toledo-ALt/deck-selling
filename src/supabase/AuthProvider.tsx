@@ -27,54 +27,56 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const lastUserIdRef = useRef<string | null>(null);
 
-    // isFreshLogin indica si es un login nuevo (no una sesión restaurada al recargar)
     const handleSession = async (s: Session | null, isFreshLogin = false) => {
         setSession(s ?? null);
         setUser(s?.user ?? null);
 
-        if (s?.user?.id && s.user.id === lastUserIdRef.current) {
+        if (!s?.user?.id) {
+            setRole(null);
+            setLoading(false);
+            lastUserIdRef.current = null;
+            return;
+        }
+
+        // Solo ignorar si ya procesamos este usuario antes en esta sesión
+        if (s.user.id === lastUserIdRef.current) {
             console.log("⏩ Ignorando evento duplicado para:", s.user.id);
             setLoading(false);
             return;
         }
 
-        lastUserIdRef.current = s?.user?.id ?? null;
+        lastUserIdRef.current = s.user.id;
 
         try {
-            if (s?.user?.id) {
-                console.log("⚡ Procesando sesión para:", s.user.id);
+            console.log("⚡ Procesando sesión para:", s.user.id);
 
-                await authController.createUserIfNotExists({
-                    id: s.user.id,
-                    email: s.user.email,
-                    user_metadata: s.user.user_metadata,
-                });
+            await authController.createUserIfNotExists({
+                id: s.user.id,
+                email: s.user.email,
+                user_metadata: s.user.user_metadata,
+            });
 
-                const { data, error } = await supabase
-                    .from('users')
-                    .select('role')
-                    .eq('id', s.user.id)
-                    .maybeSingle();
+            const { data, error } = await supabase
+                .from('users')
+                .select('role')
+                .eq('id', s.user.id)
+                .maybeSingle();
 
-                if (error) {
-                    console.error("⚠️ Error al obtener role del usuario:", error);
-                    setRole(null);
-                } else {
-                    console.log("🔑 role cargado:", data?.role ?? null);
-                    setRole(data?.role ?? null);
-                }
-
-                // 🛒 Solo mergear si es un login nuevo, no al restaurar sesión
-                if (isFreshLogin) {
-                    try {
-                        await mergeAnonymousCartOnLogin();
-                        console.log('🛒 Anon cart merged into user cart');
-                    } catch (mergeErr) {
-                        console.error('⚠️ Merge cart error:', mergeErr);
-                    }
-                }
-            } else {
+            if (error) {
+                console.error("⚠️ Error al obtener role:", error);
                 setRole(null);
+            } else {
+                console.log("🔑 role cargado:", data?.role ?? null);
+                setRole(data?.role ?? null);
+            }
+
+            if (isFreshLogin) {
+                try {
+                    await mergeAnonymousCartOnLogin();
+                    console.log('🛒 Anon cart merged into user cart');
+                } catch (mergeErr) {
+                    console.error('⚠️ Merge cart error:', mergeErr);
+                }
             }
         } catch (err) {
             console.error("⚠️ Error en handleSession:", err);
@@ -85,7 +87,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     useEffect(() => {
-        // Sesión inicial (restaurar al recargar) — isFreshLogin = false
+        // Sesión inicial (restaurar al recargar)
         supabase.auth.getSession().then(({ data, error }) => {
             if (error) console.error("⚠️ Error en getSession:", error);
             handleSession(data?.session ?? null, false);
@@ -93,10 +95,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
             if (event === 'SIGNED_IN') {
-                // Login nuevo — mergear carrito
                 handleSession(s, true);
-            } else if (event === 'SIGNED_OUT' || event === 'INITIAL_SESSION') {
-                handleSession(s, false);
+            } else if (event === 'SIGNED_OUT') {
+                handleSession(null, false);
+            } else if (event === 'INITIAL_SESSION') {
+                // Ignorar — ya lo maneja getSession arriba
+                setLoading(false);
             } else {
                 console.log('ℹ️ Ignorado auth event:', event);
             }
@@ -105,10 +109,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return () => sub.subscription.unsubscribe();
     }, []);
 
-    const signUp = authController.signUp;
-    const signIn = authController.signIn;
-    const signInWithMagicLink = authController.signInWithMagicLink;
-    const signInWithProvider = authController.signInWithProvider;
     const signOut = async () => {
         await authController.signOut();
         setUser(null);
@@ -125,10 +125,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 session,
                 loading,
                 role,
-                signUp,
-                signIn,
-                signInWithMagicLink,
-                signInWithProvider,
+                signUp: authController.signUp,
+                signIn: authController.signIn,
+                signInWithMagicLink: authController.signInWithMagicLink,
+                signInWithProvider: authController.signInWithProvider,
                 signOut,
             }}
         >
