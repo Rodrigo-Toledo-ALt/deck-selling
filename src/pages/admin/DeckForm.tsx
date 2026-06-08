@@ -1,8 +1,8 @@
 // DeckForm.tsx
-// Formulario para crear/editar un mazo (admin).
-// - sube imágenes a Supabase
-// - prepara payload y llama a un webhook (n8n) que procesa el mazo (Scryfall, OCR, etc.)
-// Comentarios en español, concisos para el TFG.
+// Form to create/edit a deck (admin).
+// - uploads images to Supabase
+// - prepares payload and calls an n8n webhook that processes the deck (Scryfall, OCR, etc.)
+// Comments in English for final project documentation.
 
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -23,7 +23,7 @@ import { supabase } from '@/supabase/supabase-client.ts';
 import 'mana-font/css/mana.css';
 import Navbar from "@/components/Navbar.tsx";
 
-// Extrae todas las rutas de imagen almacenadas en deckData (para limpieza en edición)
+// Extract all stored image paths from deckData (used to clean up on edit)
 function extractAllCardImagePaths(deckData: DeckData): string[] {
     const sections = [
         'commander', 'creatures', 'sorceries', 'instants',
@@ -43,7 +43,7 @@ function extractAllCardImagePaths(deckData: DeckData): string[] {
     return paths;
 }
 
-// Parsea un decklist en texto (formato "1x Sol Ring" y comentarios //section)
+// Parse a decklist text (format "1x Sol Ring" and section comments //section)
 function parseDecklistToItems(input: string): { name: string; quantity: number; section: string }[] {
     const lines = input.split(/\r?\n/);
     const cards: { name: string; quantity: number; section: string }[] = [];
@@ -66,7 +66,7 @@ function parseDecklistToItems(input: string): { name: string; quantity: number; 
     return cards;
 }
 
-// Convierte PNG a JPG usando canvas (para reducir compatibilidad/size)
+// Convert PNG to JPG using canvas (to reduce compatibility/size)
 async function convertToJpg(file: File, quality = 0.8): Promise<File> {
     return new Promise((resolve, reject) => {
         const img = new Image();
@@ -86,12 +86,12 @@ async function convertToJpg(file: File, quality = 0.8): Promise<File> {
     });
 }
 
-// Sanitiza nombre de archivo para usar en rutas de almacenamiento
+// Sanitize filename for storage paths
 function sanitizeFileName(name: string) {
     return name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9.\-_]/g, '_');
 }
 
-// Formatea bytes a texto legible
+// Format bytes to readable text
 function formatBytes(bytes: number, decimals = 2) {
     if (bytes === 0) return '0 Bytes';
     const k = 1024; const dm = decimals < 0 ? 0 : decimals;
@@ -100,7 +100,7 @@ function formatBytes(bytes: number, decimals = 2) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
 }
 
-// Opciones de colores (UI + mapeo a códigos)
+// Color options (UI + mapping to codes)
 const colorOptions = ['White', 'Blue', 'Black', 'Red', 'Green', 'Colorless'] as const;
 const colorMap: Record<typeof colorOptions[number], 'W'|'U'|'B'|'R'|'G'|''> = {
     White: 'W', Blue: 'U', Black: 'B', Red: 'R', Green: 'G', Colorless: '',
@@ -116,7 +116,7 @@ const ColorIcon = ({ color, selected }: { color: typeof colorOptions[number]; se
     </div>
 );
 
-// Esquema Zod para validar el formulario (client-side)
+// Zod schema for client-side validation
 const deckSchema = z.object({
     name: z.string().min(3, 'Name must be at least 3 characters'),
     description: z.string().min(10, 'Description must be at least 10 characters'),
@@ -129,24 +129,24 @@ const deckSchema = z.object({
     decklist: z.string().min(10, 'Decklist must be at least 10 characters'),
 }).superRefine((data, ctx) => {
     if (data.colorless && (data.colorsCodes?.length || 0) > 0) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Colorless no puede combinarse con otros colores', path: ['colorsCodes'] });
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Colorless cannot be combined with other colors', path: ['colorsCodes'] });
     }
     if (!data.colorless && (data.colorsCodes?.length || 0) === 0) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Selecciona Colorless o al menos un color', path: ['colorsCodes'] });
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Select Colorless or at least one color', path: ['colorsCodes'] });
     }
 });
 
 type DeckFormValues = z.infer<typeof deckSchema>;
 
-// Pasos de procesamiento mostrados en overlay (informativo)
+// Processing steps shown in overlay (informational)
 const PROCESSING_STEPS = [
-    { label: 'Subiendo imágenes...', duration: 0 },
-    { label: 'Enviando mazo a procesamiento...', duration: 8000 },
-    { label: 'Obteniendo datos de Scryfall...', duration: 20000 },
-    { label: 'Cruzando imágenes de cartas...', duration: 45000 },
-    { label: 'Construyendo estructura del mazo...', duration: 75000 },
-    { label: 'Guardando en base de datos...', duration: 110000 },
-    { label: 'Casi listo...', duration: 150000 },
+    { label: 'Uploading images...', duration: 0 },
+    { label: 'Sending deck for processing...', duration: 8000 },
+    { label: 'Fetching Scryfall data...', duration: 20000 },
+    { label: 'Matching card images...', duration: 45000 },
+    { label: 'Building deck structure...', duration: 75000 },
+    { label: 'Saving to database...', duration: 110000 },
+    { label: 'Almost done...', duration: 150000 },
 ];
 
 interface ProcessingOverlayProps {
@@ -155,7 +155,7 @@ interface ProcessingOverlayProps {
     onDismissError: () => void;
 }
 
-// Overlay que muestra progreso/estado durante el procesamiento del mazo
+// Overlay that shows progress/status while the deck is being processed
 const ProcessingOverlay: React.FC<ProcessingOverlayProps> = ({ elapsedSeconds, error, onDismissError }) => {
     const currentStep = PROCESSING_STEPS.reduce((acc, step) =>
             elapsedSeconds * 1000 >= step.duration ? step : acc
@@ -170,25 +170,25 @@ const ProcessingOverlay: React.FC<ProcessingOverlayProps> = ({ elapsedSeconds, e
             <div className="flex flex-col items-center gap-8 p-10 rounded-2xl border border-border bg-card shadow-2xl max-w-md w-full mx-4">
                 {error ? (
                     <>
-                        {/* Estado de error: muestra mensaje y botón para cerrar */}
+                        {/* Error state: show message and close button */}
                         <div className="flex items-center justify-center w-20 h-20 rounded-full bg-destructive/10 border-2 border-destructive">
                             <i className="ms ms-ability-deathtouch ms-3x text-destructive" />
                         </div>
                         <div className="text-center space-y-2">
-                            <h2 className="text-xl font-bold text-destructive">Error de procesamiento</h2>
-                            <p className="text-sm text-muted-foreground">Ocurrió un error al procesar el deck.</p>
+                            <h2 className="text-xl font-bold text-destructive">Processing error</h2>
+                            <p className="text-sm text-muted-foreground">An error occurred while processing the deck.</p>
                         </div>
                         <div className="w-full bg-destructive/10 border border-destructive/30 rounded-lg p-4">
                             <p className="text-sm text-destructive font-mono break-words">{error}</p>
                         </div>
-                        <p className="text-xs text-muted-foreground tabular-nums">Falló a los: {timeStr}</p>
+                        <p className="text-xs text-muted-foreground tabular-nums">Failed at: {timeStr}</p>
                         <Button variant="outline" onClick={onDismissError} className="w-full">
-                            Cerrar e intentar de nuevo
+                            Close and retry
                         </Button>
                     </>
                 ) : (
                     <>
-                        {/* Estado procesando: animación, paso actual y barra */}
+                        {/* Processing state: spinner, current step and bar */}
                         <div className="relative flex items-center justify-center">
                             <div className="w-24 h-24 rounded-full border-4 border-muted animate-spin border-t-primary" />
                             <div className="absolute">
@@ -196,9 +196,9 @@ const ProcessingOverlay: React.FC<ProcessingOverlayProps> = ({ elapsedSeconds, e
                             </div>
                         </div>
                         <div className="text-center space-y-1">
-                            <h2 className="text-xl font-bold tracking-tight">Procesando Mazo</h2>
+                            <h2 className="text-xl font-bold tracking-tight">Processing Deck</h2>
                             <p className="text-sm text-muted-foreground">
-                                Esto puede tardar unos minutos. Por favor, no cierres esta pestaña.
+                                This may take a few minutes. Please do not close this tab.
                             </p>
                         </div>
                         <div className="w-full text-center">
@@ -218,7 +218,7 @@ const ProcessingOverlay: React.FC<ProcessingOverlayProps> = ({ elapsedSeconds, e
                                 );
                             })}
                         </div>
-                        <p className="text-xs text-muted-foreground tabular-nums">Tiempo: {timeStr}</p>
+                        <p className="text-xs text-muted-foreground tabular-nums">Time: {timeStr}</p>
                     </>
                 )}
             </div>
@@ -240,7 +240,7 @@ const DeckForm: React.FC = () => {
     const { toast } = useToast();
     const { user, role, loading } = useAuth();
 
-    // react-hook-form con validación Zod
+    // react-hook-form with Zod validation
     const form = useForm<DeckFormValues>({
         resolver: zodResolver(deckSchema),
         defaultValues: {
@@ -249,11 +249,11 @@ const DeckForm: React.FC = () => {
         },
     });
 
-    // Valores observados del formulario
+    // observed form values
     const selectedCodes = form.watch('colorsCodes') || [];
     const colorless = form.watch('colorless');
 
-    // Estados de archivos / procesamiento / deck existente
+    // file / processing / existing deck states
     const [mainImage, setMainImage] = useState<File | null>(null);
     const [deckImages, setDeckImages] = useState<File[]>([]);
     const [isProcessing, setIsProcessing] = useState(false);
@@ -262,15 +262,15 @@ const DeckForm: React.FC = () => {
     const [loadingDeck, setLoadingDeck] = useState(isEditMode);
     const [existingDeck, setExistingDeck] = useState<DeckData | null>(null);
 
-    // Requiere rol admin: redirige si no tiene acceso
+    // Require admin role: redirect if not allowed
     useEffect(() => {
         if (!loading && role !== 'admin') {
-            toast({ title: 'Acceso denegado', description: 'Debes ser administrador', variant: 'destructive' });
+            toast({ title: 'Access denied', description: 'You must be an administrator', variant: 'destructive' });
             navigate('/login');
         }
     }, [loading, role, toast, navigate]);
 
-    // Si es edición, cargar el mazo y prellenar el formulario
+    // If editing, load the deck and prefill the form
     useEffect(() => {
         if (!isEditMode || !deckId) return;
         (async () => {
@@ -278,7 +278,7 @@ const DeckForm: React.FC = () => {
                 setLoadingDeck(true);
                 const deck = await getDeckById(deckId, true);
                 if (!deck) {
-                    toast({ title: 'Error', description: 'Mazo no encontrado', variant: 'destructive' });
+                    toast({ title: 'Error', description: 'Deck not found', variant: 'destructive' });
                     navigate('/admin/decks');
                     return;
                 }
@@ -294,14 +294,14 @@ const DeckForm: React.FC = () => {
                 });
             } catch (e) {
                 console.error('Error loading deck:', e);
-                toast({ title: 'Error', description: 'No se pudo cargar el mazo', variant: 'destructive' });
+                toast({ title: 'Error', description: 'Could not load the deck', variant: 'destructive' });
             } finally {
                 setLoadingDeck(false);
             }
         })();
     }, [deckId, isEditMode]);
 
-    // Cronómetro mientras se procesa (para overlay)
+    // Timer while processing (for overlay)
     useEffect(() => {
         if (!isProcessing || processingError) {
             if (!isProcessing) setElapsedSeconds(0);
@@ -311,7 +311,7 @@ const DeckForm: React.FC = () => {
         return () => clearInterval(interval);
     }, [isProcessing, processingError]);
 
-    // Maneja el click en los iconos de color (toggle)
+    // Handle clicking color icons (toggle)
     const handleColorClick = (color: typeof colorOptions[number]) => {
         if (color === 'Colorless') {
             form.setValue('colorless', true, { shouldValidate: true });
@@ -326,20 +326,20 @@ const DeckForm: React.FC = () => {
         form.setValue('colorsCodes', Array.from(cur) as any, { shouldValidate: true });
     };
 
-    // Busca una carta existente por sección y nombre para intentar preservar 'faces'
+    // Find existing card by section and name to try to preserve 'faces'
     function findExistingCard(section: string, name: string) {
         if (!existingDeck) return undefined;
         const list = (existingDeck as any).deckData?.[section] ?? [];
         return list.find((c: any) => c.name === name);
     }
 
-    // Submit: sube imágenes (si hay), prepara payload y llama al webhook n8n
+    // Submit: upload images (if any), prepare payload and call n8n webhook
     const onSubmit = async (values: DeckFormValues) => {
         try {
             setProcessingError(null);
             setIsProcessing(true);
 
-            // 1) Imagen principal: subir a Supabase (borrar anterior si edita)
+            // 1) Main image: upload to Supabase (remove previous if editing)
             let mainImagePath = '';
             if (mainImage) {
                 if (existingDeck?.main_image_path) {
@@ -357,7 +357,7 @@ const DeckForm: React.FC = () => {
                 mainImagePath = existingDeck.main_image_path;
             }
 
-            // 2) Imágenes del mazo: subir y (si edita) borrar las anteriores en chunks
+            // 2) Deck images: upload and (if editing) remove previous ones in chunks
             const deckImagePaths: { originalName: string; path: string }[] = [];
             if (deckImages.length > 0) {
                 if (existingDeck) {
@@ -384,7 +384,7 @@ const DeckForm: React.FC = () => {
                 }
             }
 
-            // 3) Procesar decklist y preparar payload
+            // 3) Process decklist and prepare payload
             const colorsCsv = values.colorless ? '' : (values.colorsCodes || []).join(',');
             const parsedCards = parseDecklistToItems(values.decklist);
 
@@ -393,7 +393,7 @@ const DeckForm: React.FC = () => {
             if (isEditMode && deckId && existingDeck) {
                 existing_deck_json = existingDeck.deckData;
 
-                // Si no subieron nuevas fotos, intentamos preservar las 'faces' encontradas
+                // If no new photos were uploaded, try to preserve 'faces' found previously
                 if ((!deckImages || deckImages.length === 0)) {
                     existing_deck_cards = parsedCards.map(pc => {
                         const found = findExistingCard(pc.section, pc.name);
@@ -424,9 +424,9 @@ const DeckForm: React.FC = () => {
 
             if (existing_deck_json) payload.existing_deck_json = existing_deck_json;
             if (existing_deck_cards) payload.existing_deck_cards = existing_deck_cards;
-            if (existing_deck_cards) payload.preserve_card_images = true; // bandera para el flujo n8n
+            if (existing_deck_cards) payload.preserve_card_images = true; // flag for the n8n flow
 
-            // 4) Llamada al webhook (n8n) con token del usuario admin (si existe)
+            // 4) Call the webhook (n8n) with admin user's token (if exists)
             const { data: sessionData } = await supabase.auth.getSession();
             const token = sessionData.session?.access_token;
 
@@ -439,21 +439,21 @@ const DeckForm: React.FC = () => {
                 body: JSON.stringify(payload),
             });
 
-            if (!res.ok) throw new Error(`Error en webhook: ${res.status}`);
+            if (!res.ok) throw new Error(`Webhook error: ${res.status}`);
 
-            // Done: feedback y redirección
+            // Done: feedback and redirect
             setIsProcessing(false);
             toast({
-                title: isEditMode ? 'Mazo actualizado ✓' : 'Mazo creado ✓',
+                title: isEditMode ? 'Deck updated ✓' : 'Deck created ✓',
                 description: isEditMode
-                    ? 'Se han actualizado los datos y fotos.'
-                    : 'Mazo creado. Es invisible hasta que lo publiques.',
+                    ? 'Data and images have been updated.'
+                    : 'Deck created. It is invisible until you publish it.',
             });
             navigate('/admin/decks');
         } catch (err: any) {
-            console.error('Error en onSubmit:', err);
-            // Guardar mensaje para mostrar en overlay de error
-            setProcessingError(err?.message ?? 'Error desconocido al guardar.');
+            console.error('Error in onSubmit:', err);
+            // Save message to show in overlay error
+            setProcessingError(err?.message ?? 'Unknown error while saving.');
         }
     };
 
@@ -462,13 +462,13 @@ const DeckForm: React.FC = () => {
         setProcessingError(null);
     };
 
-    // Maneja selección múltiple de imágenes del mazo
+    // Handle multiple deck images selection
     const handleDeckImagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
         setDeckImages(files.filter((f) => f.type.startsWith('image/')));
     };
 
-    if (loading || loadingDeck) return <div className="p-8">Cargando...</div>;
+    if (loading || loadingDeck) return <div className="p-8">Loading...</div>;
 
     return (
         <>
@@ -477,24 +477,24 @@ const DeckForm: React.FC = () => {
                 <Navbar />
                 <AdminLayout>
                     <div className="container mx-auto px-4 py-8">
-                        <h1 className="text-3xl font-bold mb-8">{isEditMode ? 'Editar Mazo' : 'Crear Nuevo Mazo'}</h1>
+                        <h1 className="text-3xl font-bold mb-8">{isEditMode ? 'Edit Deck' : 'Create New Deck'}</h1>
                         <div className="bg-card rounded-lg border border-border p-8">
                             <Form {...form}>
                                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                                     <FormField control={form.control} name="name" render={({ field }) => (
-                                        <FormItem><FormLabel>Nombre</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                                        <FormItem><FormLabel>Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                                     )} />
                                     <FormField control={form.control} name="description" render={({ field }) => (
-                                        <FormItem><FormLabel>Descripción</FormLabel><FormControl><Textarea {...field} rows={4} /></FormControl><FormMessage /></FormItem>
+                                        <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} rows={4} /></FormControl><FormMessage /></FormItem>
                                     )} />
                                     <FormField control={form.control} name="price" render={({ field }) => (
-                                        <FormItem><FormLabel>Precio</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormItem>
+                                        <FormItem><FormLabel>Price</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormItem>
                                     )} />
                                     <FormField control={form.control} name="format" render={({ field }) => (
-                                        <FormItem><FormLabel>Formato</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                                        <FormItem><FormLabel>Format</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                                     )} />
                                     <FormItem>
-                                        <FormLabel>Colores</FormLabel>
+                                        <FormLabel>Colors</FormLabel>
                                         <div className="flex flex-wrap gap-3">
                                             {colorOptions.map((color) => (
                                                 <button key={color} type="button" onClick={() => handleColorClick(color)}>
@@ -504,16 +504,16 @@ const DeckForm: React.FC = () => {
                                         </div>
                                     </FormItem>
                                     <FormField control={form.control} name="author_name" render={({ field }) => (
-                                        <FormItem><FormLabel>Autor</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                                        <FormItem><FormLabel>Author</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                                     )} />
                                     <FormField control={form.control} name="author_website" render={({ field }) => (
-                                        <FormItem><FormLabel>Web del Autor</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                                        <FormItem><FormLabel>Author Website</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                                     )} />
                                     <FormItem>
-                                        <FormLabel>Imagen Principal</FormLabel>
+                                        <FormLabel>Main Image</FormLabel>
                                         <div className="flex items-center gap-4">
                                             <label className="px-4 py-2 bg-secondary rounded shadow cursor-pointer">
-                                                Seleccionar Imagen
+                                                Select Image
                                                 <Input type="file" accept="image/*" className="hidden" onChange={async (e) => {
                                                     const file = e.target.files?.[0];
                                                     setMainImage(file ? (file.type === 'image/png' ? await convertToJpg(file, 0.85) : file) : null);
@@ -523,27 +523,27 @@ const DeckForm: React.FC = () => {
                                         </div>
                                     </FormItem>
                                     <FormItem>
-                                        <FormLabel>Imágenes del Mazo (Opcional en edición)</FormLabel>
+                                        <FormLabel>Deck Images (Optional in edit)</FormLabel>
                                         <div className="flex items-center gap-4">
                                             <label className="px-4 py-2 bg-secondary rounded shadow cursor-pointer">
-                                                Seleccionar Múltiples
+                                                Select Multiple
                                                 <Input type="file" accept="image/*" multiple className="hidden" onChange={handleDeckImagesChange} />
                                             </label>
-                                            {deckImages.length > 0 && <span className="text-sm">{deckImages.length} imágenes</span>}
+                                            {deckImages.length > 0 && <span className="text-sm">{deckImages.length} images</span>}
                                         </div>
-                                        <p className="text-xs text-muted-foreground mt-1">Si subes fotos nuevas, se borrarán las anteriores vinculadas a este mazo.</p>
+                                        <p className="text-xs text-muted-foreground mt-1">If you upload new photos, the previous ones linked to this deck will be deleted.</p>
                                     </FormItem>
                                     <FormField control={form.control} name="decklist" render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Decklist (Actualizará solo si n8n procesa)</FormLabel>
+                                            <FormLabel>Decklist (Will update only if n8n processes)</FormLabel>
                                             <FormControl><Textarea {...field} rows={10} placeholder="1 Sol Ring..." /></FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )} />
                                     <div className="flex justify-end gap-4 pt-4">
-                                        <Button type="button" variant="outline" onClick={() => navigate('/admin/decks')}>Cancelar</Button>
+                                        <Button type="button" variant="outline" onClick={() => navigate('/admin/decks')}>Cancel</Button>
                                         <Button type="submit" disabled={isProcessing}>
-                                            {isProcessing ? 'Guardando...' : isEditMode ? 'Actualizar Mazo' : 'Crear Mazo'}
+                                            {isProcessing ? 'Saving...' : isEditMode ? 'Update Deck' : 'Create Deck'}
                                         </Button>
                                     </div>
                                 </form>

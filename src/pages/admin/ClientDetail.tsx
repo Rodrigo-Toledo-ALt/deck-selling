@@ -1,8 +1,8 @@
 // ClientDetailPage.tsx
-// Página administrativa para ver el detalle de un cliente:
-// - carga el cliente por ID (users_remote.getClientById)
-// - muestra perfil, direcciones y pedidos con sus ítems
-// Comentarios en español y concisos para facilitar lectura en el TFG.
+// Administrative page to view client details:
+// - loads the client by ID (users_remote.getClientById)
+// - displays profile, addresses, and orders with their items
+// Comments in English for the finalized project documentation.
 
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
@@ -15,81 +15,81 @@ import { getClientById, ClientDetail } from '@/data/users_remote';
 import Navbar from '@/components/Navbar.tsx';
 import AdminLayout from '@/components/AdminLayout.tsx';
 
-// Helper simple para formatear cantidades en EUR
+// Simple helper to format currency in EUR
 const currency = (n: number) =>
     new Intl.NumberFormat(undefined, { style: 'currency', currency: 'EUR' }).format(n);
 
 const ClientDetailPage: React.FC = () => {
-    const { id } = useParams<{ id: string }>(); // id del cliente desde la ruta
+    const { id } = useParams<{ id: string }>(); // client id from the route
     const { toast } = useToast();
     const [loading, setLoading] = useState(false);
     const [client, setClient] = useState<ClientDetail | null>(null);
 
-    // Efecto que carga el cliente cuando cambia el id
+    // Effect to load client data when the id changes
     useEffect(() => {
         if (!id) return;
         (async () => {
             try {
                 setLoading(true);
-                const data = await getClientById(id); // llamada al servicio remoto
+                const data = await getClientById(id); // call to remote service
                 if (!data) {
-                    // feedback si no existe el cliente
-                    toast({ title: 'Not found', description: 'Cliente no encontrado', variant: 'destructive' });
+                    // feedback if client does not exist
+                    toast({ title: 'Not found', description: 'Client not found', variant: 'destructive' });
                 }
                 setClient(data ?? null);
             } catch (e) {
                 console.error(e);
-                toast({ title: 'Error', description: 'No se pudo cargar el cliente', variant: 'destructive' });
+                toast({ title: 'Error', description: 'Could not load client details', variant: 'destructive' });
             } finally {
                 setLoading(false);
             }
         })();
     }, [id, toast]);
 
-    // Estado de carga: indicador sencillo
+    // Loading state: simple indicator
     if (loading) return <div className="p-6">Loading...</div>;
 
-    // Si no hay cliente (no encontrado), mostrar botón de vuelta
+    // If client is not found, show back button
     if (!client) {
         return (
             <div className="p-6">
-                <p className="mb-4">Cliente no encontrado.</p>
-                <Button asChild variant="outline"><Link to="/admin/clients">Volver a Clientes</Link></Button>
+                <p className="mb-4">Client not found.</p>
+                <Button asChild variant="outline"><Link to="/admin/clients">Back to Clients</Link></Button>
             </div>
         );
     }
 
-    // Render principal: Navbar + layout administrativo
+    // Main render: Navbar + Admin Layout
     return (
         <div className="flex flex-col min-h-screen">
             <Navbar />
             <AdminLayout>
                 <div className="p-4 md:p-6 space-y-6">
 
-                    {/* Header con nombre del cliente y botón de volver */}
+                    {/* Header with client name and back button */}
                     <div className="flex items-center justify-between">
-                        <h1 className="text-2xl font-semibold">Cliente: {client.username}</h1>
-                        <Button asChild variant="outline"><Link to="/admin/clients">Volver</Link></Button>
+                        <h1 className="text-2xl font-semibold">Client: {client.username}</h1>
+                        <Button asChild variant="outline"><Link to="/admin/clients">Back</Link></Button>
                     </div>
 
-                    {/* Tarjeta: Perfil básico */}
+                    {/* Card: Basic Profile */}
                     <Card>
-                        <CardHeader><CardTitle>Perfil</CardTitle></CardHeader>
+                        <CardHeader><CardTitle>Profile</CardTitle></CardHeader>
                         <CardContent className="space-y-2">
                             <div><span className="text-muted-foreground">Username:</span> {client.username}</div>
                             <div><span className="text-muted-foreground">Email:</span> {client.email}</div>
                             <div><span className="text-muted-foreground">Role:</span> {client.role}</div>
-                            <div><span className="text-muted-foreground">Creado:</span> {client.created_at ? new Date(client.created_at).toLocaleString() : '-'}</div>
-                            <div><span className="text-muted-foreground">Fecha de nacimiento:</span> {client.birthdate ?? '-'}</div>
+                            <div><span className="text-muted-foreground">Created at:</span> {client.created_at ? new Date(client.created_at).toLocaleString() : '-'}</div>
+                            <div><span className="text-muted-foreground">Date of birth:</span> {client.birthdate ?? '-'}</div>
                         </CardContent>
                     </Card>
 
-                    {/* Tarjeta: Direcciones - lista o mensaje si no hay */}
+                    {/* Card: Addresses - list or empty message */}
                     <Card>
-                        <CardHeader><CardTitle>Direcciones</CardTitle></CardHeader>
+                        <CardHeader><CardTitle>Addresses</CardTitle></CardHeader>
                         <CardContent>
                             {client.addresses.length === 0 ? (
-                                <div className="text-sm text-muted-foreground">Sin direcciones</div>
+                                <div className="text-sm text-muted-foreground">No addresses registered</div>
                             ) : (
                                 <ul className="list-disc pl-5 space-y-1">
                                     {client.addresses.map(a => (
@@ -102,47 +102,47 @@ const ClientDetailPage: React.FC = () => {
                         </CardContent>
                     </Card>
 
-                    {/* Tarjeta: Pedidos */}
+                    {/* Card: Orders */}
                     <Card>
-                        <CardHeader><CardTitle>Pedidos</CardTitle></CardHeader>
+                        <CardHeader><CardTitle>Order History</CardTitle></CardHeader>
                         <CardContent>
                             {client.orders.length === 0 ? (
-                                <div className="text-sm text-muted-foreground">Sin pedidos</div>
+                                <div className="text-sm text-muted-foreground">No orders found</div>
                             ) : (
                                 <div className="space-y-6">
                                     {client.orders.map(o => (
-                                        // Cada pedido como caja con cabecera y tabla de items
+                                        // Each order box with header and items table
                                         <div key={o.id} className="border rounded-md overflow-hidden">
                                             <div className="flex items-center justify-between p-3 border-b">
                                                 <div>
-                                                    <div className="font-medium">Pedido #{o.id}</div>
+                                                    <div className="font-medium">Order #{o.id.substring(0, 8)}...</div>
                                                     <div className="text-sm text-muted-foreground">
                                                         {o.order_date ? new Date(o.order_date).toLocaleString() : '-'}
                                                     </div>
                                                 </div>
-                                                {/* Badge con total del pedido */}
+                                                {/* Badge with order total */}
                                                 <Badge variant="secondary">Total: {currency(o.total_amount)}</Badge>
                                             </div>
                                             <div className="p-3">
                                                 <Table>
                                                     <TableHeader>
                                                         <TableRow>
-                                                            <TableHead>Producto</TableHead>
-                                                            <TableHead>Cantidad</TableHead>
-                                                            <TableHead>Precio</TableHead>
+                                                            <TableHead>Product</TableHead>
+                                                            <TableHead>Quantity</TableHead>
+                                                            <TableHead>Price</TableHead>
                                                         </TableRow>
                                                     </TableHeader>
                                                     <TableBody>
                                                         {o.items.length === 0 ? (
-                                                            // Caso borde: pedido sin items (raro, pero manejado)
+                                                            // Edge case: order without items
                                                             <TableRow>
-                                                                <TableCell colSpan={3} className="text-center text-sm text-muted-foreground">Sin items</TableCell>
+                                                                <TableCell colSpan={3} className="text-center text-sm text-muted-foreground">No items in this order</TableCell>
                                                             </TableRow>
                                                         ) : (
-                                                            // Filas por cada item del pedido
+                                                            // Rows for each order item
                                                             o.items.map(it => (
                                                                 <TableRow key={it.id}>
-                                                                    <TableCell>{it.product_name ?? it.product_id ?? '(desconocido)'}</TableCell>
+                                                                    <TableCell>{it.product_name ?? it.product_id ?? '(Unknown)'}</TableCell>
                                                                     <TableCell>{it.quantity ?? '-'}</TableCell>
                                                                     <TableCell>{typeof it.price === 'number' ? currency(it.price) : '-'}</TableCell>
                                                                 </TableRow>

@@ -1,7 +1,7 @@
 // AccountProfile.tsx
-// Página del perfil de usuario: permite editar perfil, gestionar direcciones,
-// cambiar contraseña/email, enviar tickets de soporte y desactivar la cuenta.
-// Usa servicios remotos (account_remote) y Supabase directamente.
+// User profile page: edit profile, manage addresses,
+// change password/email, submit support tickets and deactivate account.
+// Uses remote services (account_remote) and Supabase directly.
 
 import React, { useEffect, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -28,7 +28,7 @@ import {
 import Navbar from "@/components/Navbar.tsx";
 import { supabase } from '@/lib/supabase';
 
-// Representa un pedido del usuario (para vincularlo a tickets de soporte)
+// Represents a short order object (for linking to support tickets)
 type OrderShort = {
     id: string;
     order_date?: string | null;
@@ -45,19 +45,19 @@ const AccountProfile: React.FC = () => {
     const [emailDraft, setEmailDraft] = useState('');
     const [newPassword, setNewPassword] = useState('');
 
-    // Estados para pedidos (soporte)
+    // Orders state (for support)
     const [orders, setOrders] = useState<OrderShort[]>([]);
     const [ordersLoading, setOrdersLoading] = useState(false);
 
-    // Estados para ticket de soporte
-    const [selectedOrder, setSelectedOrder] = useState<string>(''); // ID del pedido
+    // Support ticket state
+    const [selectedOrder, setSelectedOrder] = useState<string>(''); // order id
     const [supportSubject, setSupportSubject] = useState('');
     const [supportMessage, setSupportMessage] = useState('');
     const [sendingSupport, setSendingSupport] = useState(false);
 
-    // Estados para diálogo de dirección
+    // Address dialog state
     const [addrDialogOpen, setAddrDialogOpen] = useState(false);
-    const [addrEditing, setAddrEditing] = useState<MyAddress | null>(null); // null = nueva dirección
+    const [addrEditing, setAddrEditing] = useState<MyAddress | null>(null); // null = new address
     const [addrForm, setAddrForm] = useState<Omit<MyAddress, 'id' | 'is_default'>>({
         full_name: '',
         address: '',
@@ -67,10 +67,10 @@ const AccountProfile: React.FC = () => {
         country: '',
     });
 
-    // Diálogo de desactivar cuenta
+    // Deactivate account dialog
     const [showDeactivateDialog, setShowDeactivateDialog] = useState(false);
 
-    // --- Efecto inicial: cargar perfil y direcciones ---
+    // --- Initial effect: load profile and addresses ---
     useEffect(() => {
         (async () => {
             setLoading(true);
@@ -85,11 +85,11 @@ const AccountProfile: React.FC = () => {
             setLoading(false);
         })();
 
-        // Cargar pedidos por separado (menos crítico)
+        // Load orders separately (less critical)
         fetchMyOrders();
     }, []);
 
-    // --- Cargar pedidos del usuario (para el desplegable de soporte) ---
+    // --- Load user's orders (for support dropdown) ---
     const fetchMyOrders = async () => {
         try {
             setOrdersLoading(true);
@@ -115,66 +115,66 @@ const AccountProfile: React.FC = () => {
         }
     };
 
-    // --- PERFIL ---
+    // --- PROFILE ---
 
-    // Guardar cambios en el nombre de usuario
+    // Save username changes
     const onSaveProfile = async () => {
         try {
             setSaving(true);
             const ok = await updateMe({ username });
             if (!ok) throw new Error();
             setProfile(prev => (prev ? { ...prev, username } : prev));
-            toast({ title: 'Guardado', description: 'Tu perfil ha sido actualizado.' });
+            toast({ title: 'Saved', description: 'Your profile has been updated.' });
         } catch {
-            toast({ title: 'Error', description: 'No se pudo actualizar el perfil.', variant: 'destructive' });
+            toast({ title: 'Error', description: 'Could not update profile.', variant: 'destructive' });
         } finally {
             setSaving(false);
         }
     };
 
-    // Solicitar cambio de email (requiere verificación)
+    // Request email change (requires verification)
     const onChangeEmail = async () => {
         if (!emailDraft || emailDraft === profile?.email) return;
         try {
             const ok = await updateMyEmail(emailDraft);
             if (!ok) throw new Error();
             toast({
-                title: 'Actualización de email solicitada',
-                description: 'Revisa tu bandeja de entrada para verificar el nuevo email.',
+                title: 'Email change requested',
+                description: 'Check your inbox to verify the new email.',
             });
         } catch {
-            toast({ title: 'Error', description: 'No se pudo actualizar el email.', variant: 'destructive' });
+            toast({ title: 'Error', description: 'Could not request email change.', variant: 'destructive' });
         }
     };
 
-    // --- SEGURIDAD ---
+    // --- SECURITY ---
 
-    // Cambiar contraseña
+    // Change password
     const onChangePassword = async () => {
         if (!newPassword) return;
         try {
             const ok = await changeMyPassword(newPassword);
             if (!ok) throw new Error();
-            toast({ title: 'Contraseña cambiada', description: 'Usa tu nueva contraseña la próxima vez.' });
-            setNewPassword(''); // Limpiar campo
+            toast({ title: 'Password changed', description: 'Use your new password next time.' });
+            setNewPassword(''); // clear field
         } catch {
-            toast({ title: 'Error', description: 'No se pudo cambiar la contraseña.', variant: 'destructive' });
+            toast({ title: 'Error', description: 'Could not change the password.', variant: 'destructive' });
         }
     };
 
-    // Recargar direcciones desde el servidor
+    // Reload addresses from server
     const reloadAddresses = async () => setAddresses(await getMyAddresses());
 
-    // --- DIRECCIONES ---
+    // --- ADDRESSES ---
 
-    // Abrir diálogo para añadir nueva dirección
+    // Open dialog to add new address
     const openAddAddress = () => {
         setAddrEditing(null);
         setAddrForm({ full_name: '', address: '', city: '', state: '', postal_code: '', country: '' });
         setAddrDialogOpen(true);
     };
 
-    // Abrir diálogo para editar dirección existente
+    // Open dialog to edit existing address
     const openEditAddress = (a: MyAddress) => {
         setAddrEditing(a);
         setAddrForm({
@@ -188,53 +188,53 @@ const AccountProfile: React.FC = () => {
         setAddrDialogOpen(true);
     };
 
-    // Marcar dirección como predeterminada
+    // Mark address as default
     const onSetDefault = async (id: string) => {
         const ok = await setDefaultAddress(id);
         if (ok) {
-            toast({ title: 'Dirección por defecto actualizada' });
-            await reloadAddresses(); // Recargar para reflejar cambios
+            toast({ title: 'Default address updated' });
+            await reloadAddresses(); // refresh to reflect changes
         } else {
-            toast({ title: 'Error', description: 'No se pudo establecer la dirección por defecto', variant: 'destructive' });
+            toast({ title: 'Error', description: 'Could not set default address', variant: 'destructive' });
         }
     };
 
-    // Guardar dirección (crear o actualizar)
+    // Save address (create or update)
     const submitAddress = async () => {
         let ok = false;
         if (addrEditing) {
-            // Modo edición
+            // Edit mode
             ok = await updateMyAddress(addrEditing.id, addrForm);
             ok
-                ? toast({ title: 'Dirección actualizada' })
-                : toast({ title: 'Error', description: 'No se pudo actualizar la dirección', variant: 'destructive' });
+                ? toast({ title: 'Address updated' })
+                : toast({ title: 'Error', description: 'Could not update the address', variant: 'destructive' });
         } else {
-            // Modo creación
+            // Create mode
             ok = await createMyAddress(addrForm);
             ok
-                ? toast({ title: 'Dirección añadida' })
-                : toast({ title: 'Error', description: 'No se pudo añadir la dirección', variant: 'destructive' });
+                ? toast({ title: 'Address added' })
+                : toast({ title: 'Error', description: 'Could not add the address', variant: 'destructive' });
         }
-        if (ok) await reloadAddresses(); // Recargar lista
+        if (ok) await reloadAddresses(); // refresh list
         setAddrDialogOpen(false);
         setAddrEditing(null);
     };
 
-    // Eliminar dirección con confirmación
+    // Delete address with confirmation
     const removeAddress = async (id: string) => {
-        if (!confirm('¿Eliminar esta dirección?')) return;
+        if (!confirm('Delete this address?')) return;
         const ok = await deleteMyAddress(id);
         if (ok) {
-            toast({ title: 'Dirección eliminada' });
-            await reloadAddresses(); // Recargar lista
+            toast({ title: 'Address removed' });
+            await reloadAddresses(); // refresh list
         } else {
-            toast({ title: 'Error', description: 'No se pudo eliminar la dirección', variant: 'destructive' });
+            toast({ title: 'Error', description: 'Could not remove the address', variant: 'destructive' });
         }
     };
 
-    // --- DESACTIVAR CUENTA ---
+    // --- DEACTIVATE ACCOUNT ---
 
-    // Desactiva la cuenta del usuario actual en la BD
+    // Deactivate the current user's account in the DB
     const deactivateAccount = async () => {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) return;
@@ -244,35 +244,35 @@ const AccountProfile: React.FC = () => {
             .update({
                 status: 'inactive',
                 inactivated_at: new Date().toISOString(),
-                deactivated_by: session.user.id,       // Quién lo hizo
-                deactivated_by_role: 'user'             // Rol del que lo hizo
+                deactivated_by: session.user.id,       // who did it
+                deactivated_by_role: 'user'            // role of actor
             })
-            .eq('id', session.user.id); // Solo el propio usuario
+            .eq('id', session.user.id); // only the user themself
 
         if (error) {
             toast({
                 title: 'Error',
-                description: 'No se pudo desactivar la cuenta',
+                description: 'Could not deactivate the account',
                 variant: 'destructive'
             });
         } else {
             toast({
-                title: 'Cuenta desactivada',
-                description: 'Tu cuenta ha sido desactivada. Puedes contactar soporte para reactivarla.'
+                title: 'Account deactivated',
+                description: 'Your account has been deactivated. You can contact support to reactivate it.'
             });
-            // Opcional: cerrar sesión y redirigir
+            // Optional: sign out and redirect
             await supabase.auth.signOut();
             window.location.href = '/';
         }
         setShowDeactivateDialog(false);
     };
 
-    // --- SOPORTE ---
+    // --- SUPPORT ---
 
-    // Enviar ticket de soporte a la tabla 'support_tickets'
+    // Submit a support ticket to 'support_tickets' table
     const submitSupportTicket = async () => {
         if (!supportSubject.trim() || !supportMessage.trim()) {
-            toast({ title: 'Faltan datos', description: 'Asunto y mensaje son obligatorios', variant: 'destructive' });
+            toast({ title: 'Missing data', description: 'Subject and message are required', variant: 'destructive' });
             return;
         }
         try {
@@ -280,14 +280,14 @@ const AccountProfile: React.FC = () => {
             const { data: auth } = await supabase.auth.getUser();
             const userId = auth.user?.id;
             if (!userId) {
-                toast({ title: 'Error', description: 'No estás autenticado', variant: 'destructive' });
+                toast({ title: 'Error', description: 'You are not authenticated', variant: 'destructive' });
                 setSendingSupport(false);
                 return;
             }
 
             const payload = {
                 user_id: userId,
-                order_id: selectedOrder || null, // Opcional
+                order_id: selectedOrder || null, // optional
                 subject: supportSubject,
                 message: supportMessage,
                 status: 'open',
@@ -298,17 +298,17 @@ const AccountProfile: React.FC = () => {
 
             if (error) {
                 console.error('create support ticket error:', error);
-                toast({ title: 'Error', description: 'No se pudo enviar la solicitud', variant: 'destructive' });
+                toast({ title: 'Error', description: 'Could not send the request', variant: 'destructive' });
             } else {
-                toast({ title: 'Solicitud enviada', description: 'Te contactaremos lo antes posible.' });
-                // Resetear formulario
+                toast({ title: 'Request sent', description: 'We will contact you as soon as possible.' });
+                // Reset form
                 setSelectedOrder('');
                 setSupportSubject('');
                 setSupportMessage('');
             }
         } catch (err) {
             console.error('submitSupportTicket unexpected error:', err);
-            toast({ title: 'Error', description: 'Error inesperado al enviar la solicitud', variant: 'destructive' });
+            toast({ title: 'Error', description: 'Unexpected error while sending the request', variant: 'destructive' });
         } finally {
             setSendingSupport(false);
         }
@@ -323,53 +323,53 @@ const AccountProfile: React.FC = () => {
             <Navbar />
 
             <div className="container mx-auto max-w-9xl p-4 md:p-6 space-y-6">
-                <h1 className="text-2xl font-semibold mb-2">Mi Cuenta</h1>
+                <h1 className="text-2xl font-semibold mb-2">My Account</h1>
 
-                {/* PERFIL */}
+                {/* PROFILE */}
                 <Card>
-                    <CardHeader><CardTitle>Perfil</CardTitle></CardHeader>
+                    <CardHeader><CardTitle>Profile</CardTitle></CardHeader>
                     <CardContent className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {/* Nombre de usuario */}
+                            {/* Username */}
                             <div>
-                                <Label htmlFor="username">Nombre de usuario</Label>
+                                <Label htmlFor="username">Username</Label>
                                 <Input id="username" value={username} onChange={(e) => setUsername(e.target.value)} />
                             </div>
-                            {/* Fecha de nacimiento (solo lectura) */}
+                            {/* Date of birth (read-only) */}
                             <div>
-                                <Label htmlFor="birthdate">Fecha de nacimiento</Label>
+                                <Label htmlFor="birthdate">Date of birth</Label>
                                 <Input id="birthdate" value={profile?.birthdate ?? ''} disabled />
-                                <p className="text-xs text-muted-foreground mt-1">Este campo no se puede cambiar.</p>
+                                <p className="text-xs text-muted-foreground mt-1">This field cannot be changed.</p>
                             </div>
-                            {/* Email con botón de actualización */}
+                            {/* Email with update button */}
                             <div className="md:col-span-2">
                                 <Label htmlFor="email">Email</Label>
                                 <div className="flex gap-2">
                                     <Input id="email" type="email" value={emailDraft} onChange={(e) => setEmailDraft(e.target.value)} />
                                     <Button variant="outline" onClick={onChangeEmail} disabled={emailDraft === profile?.email}>
-                                        Actualizar email
+                                        Update email
                                     </Button>
                                 </div>
                             </div>
                         </div>
                         <div className="flex justify-end">
-                            <Button onClick={onSaveProfile} disabled={saving}>Guardar</Button>
+                            <Button onClick={onSaveProfile} disabled={saving}>Save</Button>
                         </div>
                     </CardContent>
                 </Card>
 
-                {/* DIRECCIONES */}
+                {/* ADDRESSES */}
                 <Card>
-                    <CardHeader><CardTitle>Direcciones</CardTitle></CardHeader>
+                    <CardHeader><CardTitle>Addresses</CardTitle></CardHeader>
                     <CardContent>
                         {addresses.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">No hay direcciones guardadas.</p>
+                            <p className="text-sm text-muted-foreground">No addresses saved.</p>
                         ) : (
                             <ul className="space-y-2">
                                 {addresses.map(a => (
                                     <li
                                         key={a.id}
-                                        // Hacer clic en la dirección la marca como predeterminada (salvo que ya lo sea)
+                                        // Clicking the address marks it as default (unless it already is)
                                         onClick={() => !a.is_default && onSetDefault(a.id)}
                                         className={`flex items-start gap-3 border rounded-md p-3 transition-colors ${
                                             a.is_default
@@ -377,7 +377,7 @@ const AccountProfile: React.FC = () => {
                                                 : 'cursor-pointer hover:border-primary/50 hover:bg-muted/30'
                                         }`}
                                     >
-                                        {/* Selector visual (círculo) */}
+                                        {/* Visual selector (circle) */}
                                         <div className="mt-0.5 flex-shrink-0">
                                             <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${
                                                 a.is_default
@@ -390,14 +390,14 @@ const AccountProfile: React.FC = () => {
                                             </div>
                                         </div>
 
-                                        {/* Datos de la dirección */}
+                                        {/* Address details */}
                                         <div className="text-sm flex-1">
                                             <div className="font-medium">{a.full_name}</div>
                                             <div className="text-muted-foreground">{a.address}</div>
                                             <div className="text-muted-foreground">{a.city}, {a.state} {a.postal_code}, {a.country}</div>
                                         </div>
 
-                                        {/* Acciones: editar/eliminar (evita propagar clic al li) */}
+                                        {/* Actions: edit/delete (stop propagation from li) */}
                                         <div className="flex gap-2" onClick={e => e.stopPropagation()}>
                                             <Button size="icon" variant="outline" onClick={() => openEditAddress(a)}>
                                                 <Pencil className="w-4 h-4" />
@@ -411,150 +411,150 @@ const AccountProfile: React.FC = () => {
                             </ul>
                         )}
                         <div className="mt-4">
-                            <Button onClick={openAddAddress}><Plus className="w-4 h-4 mr-1" /> Añadir dirección</Button>
+                            <Button onClick={openAddAddress}><Plus className="w-4 h-4 mr-1" /> Add address</Button>
                         </div>
                     </CardContent>
                 </Card>
 
-                {/* SOPORTE / CONTACTO */}
+                {/* SUPPORT / CONTACT */}
                 <Card>
-                    <CardHeader><CardTitle>Soporte y Contacto</CardTitle></CardHeader>
+                    <CardHeader><CardTitle>Support & Contact</CardTitle></CardHeader>
                     <CardContent className="space-y-4">
-                        {/* Selector de pedido (opcional) */}
+                        {/* Order selector (optional) */}
                         <div>
-                            <Label>Pedido (opcional)</Label>
+                            <Label>Order (optional)</Label>
                             <select
                                 className="w-full p-2 bg-background border rounded-md"
                                 value={selectedOrder}
                                 onChange={(e) => setSelectedOrder(e.target.value)}
                             >
-                                <option value="">General / Ninguno</option>
+                                <option value="">General / None</option>
                                 {orders.map(o => (
                                     <option key={o.id} value={o.id}>
-                                        {`Pedido #${o.id.slice(0, 8)}${o.order_date ? ` - ${new Date(o.order_date).toLocaleDateString()}` : ''}`}
+                                        {`Order #${o.id.slice(0, 8)}${o.order_date ? ` - ${new Date(o.order_date).toLocaleDateString()}` : ''}`}
                                     </option>
                                 ))}
                             </select>
-                            {ordersLoading && <p className="text-xs text-muted-foreground mt-1">Cargando pedidos...</p>}
+                            {ordersLoading && <p className="text-xs text-muted-foreground mt-1">Loading orders...</p>}
                         </div>
 
-                        {/* Asunto del ticket */}
+                        {/* Ticket subject */}
                         <div>
-                            <Label>Asunto</Label>
-                            <Input value={supportSubject} onChange={(e) => setSupportSubject(e.target.value)} placeholder="Ej: Cancelar pedido" />
+                            <Label>Subject</Label>
+                            <Input value={supportSubject} onChange={(e) => setSupportSubject(e.target.value)} placeholder="e.g. Cancel order" />
                         </div>
 
-                        {/* Mensaje del ticket */}
+                        {/* Ticket message */}
                         <div>
-                            <Label>Mensaje</Label>
+                            <Label>Message</Label>
                             <textarea
                                 className="w-full p-2 bg-background border rounded-md min-h-[100px]"
                                 value={supportMessage}
                                 onChange={(e) => setSupportMessage(e.target.value)}
-                                placeholder="Explícanos brevemente qué ha pasado..."
+                                placeholder="Briefly explain what happened..."
                             />
                         </div>
 
-                        {/* Botón de envío */}
+                        {/* Submit button */}
                         <div className="flex justify-end">
                             <Button
                                 onClick={submitSupportTicket}
                                 disabled={sendingSupport || !supportSubject.trim() || !supportMessage.trim()}
                             >
-                                {sendingSupport ? 'Enviando...' : 'Enviar solicitud'}
+                                {sendingSupport ? 'Sending...' : 'Submit request'}
                             </Button>
                         </div>
                     </CardContent>
                 </Card>
 
-                {/* SEGURIDAD */}
+                {/* SECURITY */}
                 <Card>
-                    <CardHeader><CardTitle>Seguridad</CardTitle></CardHeader>
+                    <CardHeader><CardTitle>Security</CardTitle></CardHeader>
                     <CardContent className="space-y-4">
-                        {/* Cambiar contraseña */}
+                        {/* Change password */}
                         <div>
-                            <Label htmlFor="password">Cambiar contraseña</Label>
+                            <Label htmlFor="password">Change password</Label>
                             <div className="flex gap-2">
                                 <Input
                                     id="password"
                                     type="password"
-                                    placeholder="Nueva contraseña"
+                                    placeholder="New password"
                                     value={newPassword}
                                     onChange={(e) => setNewPassword(e.target.value)}
                                 />
-                                <Button variant="outline" onClick={onChangePassword} disabled={!newPassword}>Cambiar</Button>
+                                <Button variant="outline" onClick={onChangePassword} disabled={!newPassword}>Change</Button>
                             </div>
                         </div>
 
-                        {/* DESACTIVAR CUENTA */}
+                        {/* DEACTIVATE ACCOUNT */}
                         <div className="border-t pt-4 mt-6">
                             <div className="flex justify-between items-center">
                                 <div>
-                                    <h3 className="font-medium text-destructive">Desactivar Cuenta</h3>
+                                    <h3 className="font-medium text-destructive">Deactivate Account</h3>
                                     <p className="text-sm text-muted-foreground">
-                                        Desactiva tu cuenta permanentemente. Puedes contactar soporte para reactivarla después.
+                                        Deactivate your account permanently. You can contact support to reactivate it later.
                                     </p>
                                 </div>
                                 <Button
                                     variant="destructive"
                                     onClick={() => setShowDeactivateDialog(true)}
                                 >
-                                    Desactivar Cuenta
+                                    Deactivate Account
                                 </Button>
                             </div>
                         </div>
 
                         <p className="text-xs text-muted-foreground">
-                            También puedes usar el botón de cerrar sesión en la barra de navegación para terminar tu sesión actual.
+                            You can also use the sign out button in the navigation bar to end your current session.
                         </p>
                     </CardContent>
                 </Card>
 
-                {/* Diálogo: Añadir/Editar Dirección */}
+                {/* Dialog: Add/Edit Address */}
                 <Dialog open={addrDialogOpen} onOpenChange={setAddrDialogOpen}>
                     <DialogContent>
                         <DialogHeader>
-                            <DialogTitle>{addrEditing ? 'Editar dirección' : 'Añadir dirección'}</DialogTitle>
+                            <DialogTitle>{addrEditing ? 'Edit address' : 'Add address'}</DialogTitle>
                         </DialogHeader>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <div className="md:col-span-2">
-                                <Label>Nombre completo</Label>
+                                <Label>Full name</Label>
                                 <Input
-                                    placeholder="Nombre y apellidos"
+                                    placeholder="First and last name"
                                     value={addrForm.full_name}
                                     onChange={e => setAddrForm(v => ({ ...v, full_name: e.target.value }))}
                                 />
                             </div>
                             <div className="md:col-span-2">
-                                <Label>Dirección</Label>
+                                <Label>Address</Label>
                                 <Input
                                     value={addrForm.address}
                                     onChange={e => setAddrForm(v => ({ ...v, address: e.target.value }))}
                                 />
                             </div>
                             <div>
-                                <Label>Ciudad</Label>
+                                <Label>City</Label>
                                 <Input
                                     value={addrForm.city}
                                     onChange={e => setAddrForm(v => ({ ...v, city: e.target.value }))}
                                 />
                             </div>
                             <div>
-                                <Label>Provincia</Label>
+                                <Label>State</Label>
                                 <Input
                                     value={addrForm.state}
                                     onChange={e => setAddrForm(v => ({ ...v, state: e.target.value }))}
                                 />
                             </div>
                             <div>
-                                <Label>Código postal</Label>
+                                <Label>Postal code</Label>
                                 <Input
                                     value={addrForm.postal_code}
                                     onChange={e => setAddrForm(v => ({ ...v, postal_code: e.target.value }))}
                                 />
                             </div>
                             <div>
-                                <Label>País</Label>
+                                <Label>Country</Label>
                                 <Input
                                     value={addrForm.country}
                                     onChange={e => setAddrForm(v => ({ ...v, country: e.target.value }))}
@@ -562,38 +562,38 @@ const AccountProfile: React.FC = () => {
                             </div>
                         </div>
                         <DialogFooter>
-                            <Button variant="outline" onClick={() => setAddrDialogOpen(false)}>Cancelar</Button>
+                            <Button variant="outline" onClick={() => setAddrDialogOpen(false)}>Cancel</Button>
                             <Button
                                 onClick={submitAddress}
                                 disabled={!addrForm.address || !addrForm.city || !addrForm.postal_code || !addrForm.country}
                             >
-                                {addrEditing ? 'Guardar' : 'Añadir'}
+                                {addrEditing ? 'Save' : 'Add'}
                             </Button>
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
 
-                {/* Diálogo: Confirmar Desactivación de Cuenta */}
+                {/* Dialog: Confirm Deactivate Account */}
                 <Dialog open={showDeactivateDialog} onOpenChange={setShowDeactivateDialog}>
                     <DialogContent>
                         <DialogHeader>
-                            <DialogTitle>Desactivar Cuenta</DialogTitle>
+                            <DialogTitle>Deactivate Account</DialogTitle>
                             <DialogDescription>
-                                ¿Estás seguro de que quieres desactivar tu cuenta? Esto hará que:
+                                Are you sure you want to deactivate your account? This will:
                                 <ul className="list-disc pl-5 mt-2 space-y-1">
-                                    <li>No puedas iniciar sesión</li>
-                                    <li>Tu historial de pedidos se mantenga por motivos legales</li>
-                                    <li>Se detengan todas las comunicaciones por email</li>
+                                    <li>Prevent you from signing in</li>
+                                    <li>Keep your order history for legal reasons</li>
+                                    <li>Stop all email communications</li>
                                 </ul>
-                                <p className="mt-2 font-medium">Esta acción se puede revertir contactando con soporte.</p>
+                                <p className="mt-2 font-medium">This action can be reverted by contacting support.</p>
                             </DialogDescription>
                         </DialogHeader>
                         <DialogFooter>
                             <Button variant="outline" onClick={() => setShowDeactivateDialog(false)}>
-                                Cancelar
+                                Cancel
                             </Button>
                             <Button variant="destructive" onClick={deactivateAccount}>
-                                Sí, Desactivar Cuenta
+                                Yes, Deactivate Account
                             </Button>
                         </DialogFooter>
                     </DialogContent>

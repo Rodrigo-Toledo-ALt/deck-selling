@@ -6,6 +6,8 @@
 // ── TIPOS ───────────────────────────────────────────────────────────────
 
 // Representa un ticket de soporte
+import {supabase} from "@/lib/supabase.ts";
+
 export type SupportTicket = {
     id: string;                      // ID único
     user_id: string;                 // ID del usuario que reportó
