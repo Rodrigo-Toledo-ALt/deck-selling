@@ -1,36 +1,47 @@
-// src/data/support_remote.ts
-import { supabase } from '@/lib/supabase';
+// support_Remote.ts
+// Gestiona tickets de soporte almacenados en Supabase.
+// Permite listar, obtener detalles, asignar, actualizar estado y eliminar tickets.
+// También incluye función para obtener lista de administradores.
 
+// ── TIPOS ───────────────────────────────────────────────────────────────
+
+// Representa un ticket de soporte
 export type SupportTicket = {
-    id: string;
-    user_id: string;
-    order_id?: string | null;
-    subject: string;
-    message: string;
-    status: 'open' | 'in_progress' | 'resolved' | 'rejected';
-    created_at: string;
-    updated_at?: string | null;
-    assigned_to?: string | null;
-    priority?: number | null;
+    id: string;                      // ID único
+    user_id: string;                 // ID del usuario que reportó
+    order_id?: string | null;        // ID de pedido asociado (opcional)
+    subject: string;                 // Asunto del ticket
+    message: string;                 // Mensaje detallado
+    status: 'open' | 'in_progress' | 'resolved' | 'rejected'; // Estado actual
+    created_at: string;              // Fecha de creación
+    updated_at?: string | null;      // Última actualización
+    assigned_to?: string | null;     // ID del admin asignado
+    priority?: number | null;        // Prioridad (opcional)
 
-    // campos de usuario resueltos por cliente (opcional)
-    reporter_email?: string | null;
-    reporter_username?: string | null;
-    assigned_email?: string | null;
-    assigned_username?: string | null;
+    // Campos resueltos del lado cliente (no en BD)
+    reporter_email?: string | null;    // Email del reportero
+    reporter_username?: string | null; // Nombre del reportero
+    assigned_email?: string | null;    // Email del asignado
+    assigned_username?: string | null; // Nombre del asignado
 };
 
+// ── FUNCIONES AUXILIARES ────────────────────────────────────────────────
+
 /**
- * Helper: trae Usuarios por ids y devuelve un mapa id -> user
+ * Obtiene información de usuarios por sus IDs.
+ * Retorna un mapa id -> {id, email, username}.
  */
-async function fetchUsersMap(userIds: string[]): Promise<Record<string, { id: string; email?: string | null; username?: string | null }>> {
+async function fetchUsersMap(
+    userIds: string[]
+): Promise<Record<string, { id: string; email?: string | null; username?: string | null }>> {
     if (!userIds || userIds.length === 0) return {};
+    // Filtra ids vacíos y elimina duplicados
     const unique = Array.from(new Set(userIds.filter(Boolean)));
     const { data, error } = await supabase
         .from('users')
         .select('id, email, username')
         .in('id', unique)
-        .limit(1000);
+        .limit(1000); // Límite razonable
 
     if (error) {
         console.error('fetchUsersMap error', error);
@@ -44,11 +55,14 @@ async function fetchUsersMap(userIds: string[]): Promise<Record<string, { id: st
     return map;
 }
 
+// ── FUNCIONES DE TICKETS ────────────────────────────────────────────────
+
 /**
- * Devuelve todos los tickets sin embebidos, y resuelve usuarios por separado
+ * Obtiene todos los tickets de soporte ordenados por fecha (recientes primero).
+ * Resuelve emails/nombres de usuarios reporteros y asignados.
  */
 export async function getAllSupportTickets(): Promise<SupportTicket[]> {
-    // 1) Traer tickets simples (sin users embebidos)
+    // 1) Obtener tickets sin datos de usuario embebidos
     const { data: tickets, error: ticketsErr } = await supabase
         .from('support_tickets')
         .select('id, user_id, order_id, subject, message, status, created_at, updated_at, assigned_to, priority')
@@ -61,17 +75,17 @@ export async function getAllSupportTickets(): Promise<SupportTicket[]> {
 
     const rows = tickets ?? [];
 
-    // 2) Recolectar ids de usuario a resolver
+    // 2) Recolectar IDs de usuarios para resolver
     const userIds: string[] = [];
     rows.forEach((r: any) => {
         if (r.user_id) userIds.push(r.user_id);
         if (r.assigned_to) userIds.push(r.assigned_to);
     });
 
-    // 3) Traer usuarios y mapear
+    // 3) Obtener datos de usuarios y crear mapa
     const usersMap = await fetchUsersMap(userIds);
 
-    // 4) Combinar y devolver
+    // 4) Combinar datos de tickets con usuarios y devolver
     return rows.map((r: any) => ({
         ...r,
         reporter_email: usersMap[r.user_id]?.email ?? null,
@@ -82,14 +96,15 @@ export async function getAllSupportTickets(): Promise<SupportTicket[]> {
 }
 
 /**
- * Obtener un ticket por id (misma estrategia: traer ticket simple y resolver usuarios)
+ * Obtiene un ticket por ID.
+ * Resuelve emails/nombres de usuarios reportero y asignado.
  */
 export async function getSupportTicketById(id: string): Promise<SupportTicket | null> {
     const { data, error } = await supabase
         .from('support_tickets')
         .select('id, user_id, order_id, subject, message, status, created_at, updated_at, assigned_to, priority')
         .eq('id', id)
-        .maybeSingle();
+        .maybeSingle(); // Permite null si no existe
 
     if (error) {
         console.error('getSupportTicketById error', error);
@@ -98,6 +113,7 @@ export async function getSupportTicketById(id: string): Promise<SupportTicket | 
 
     if (!data) return null;
 
+    // Resolver usuarios reportero y asignado
     const usersMap = await fetchUsersMap([data.user_id, data.assigned_to].filter(Boolean) as string[]);
 
     return {
@@ -110,10 +126,13 @@ export async function getSupportTicketById(id: string): Promise<SupportTicket | 
 }
 
 /**
- * Actualizaciones y borrados siguen operando sobre la tabla support_tickets.
- * Estas llamadas NO usan embebidos.
+ * Actualiza el estado de un ticket y registra la fecha de cambio.
+ * Retorna true si éxito, false si error.
  */
-export async function updateSupportTicketStatus(id: string, status: SupportTicket['status']): Promise<boolean> {
+export async function updateSupportTicketStatus(
+    id: string,
+    status: SupportTicket['status']
+): Promise<boolean> {
     const { error } = await supabase
         .from('support_tickets')
         .update({ status, updated_at: new Date().toISOString() })
@@ -126,6 +145,10 @@ export async function updateSupportTicketStatus(id: string, status: SupportTicke
     return true;
 }
 
+/**
+ * Asigna un ticket a un administrador (o lo desasigna si adminId es null).
+ * Retorna true si éxito, false si error.
+ */
 export async function assignSupportTicket(id: string, adminId: string | null): Promise<boolean> {
     const { error } = await supabase
         .from('support_tickets')
@@ -139,6 +162,10 @@ export async function assignSupportTicket(id: string, adminId: string | null): P
     return true;
 }
 
+/**
+ * Elimina un ticket de soporte por ID.
+ * Retorna true si éxito, false si error.
+ */
 export async function deleteSupportTicket(id: string): Promise<boolean> {
     const { error } = await supabase
         .from('support_tickets')
@@ -152,22 +179,23 @@ export async function deleteSupportTicket(id: string): Promise<boolean> {
     return true;
 }
 
-/**
- * Obtener admins (puedes adaptar esta heurística).
- * Aquí simplemente devolvemos todos los usuarios (o filtra según tu lógica).
- */
+// ── FUNCIONES DE ADMINISTRADORES ────────────────────────────────────────
 
+/**
+ * Obtiene una lista de administradores (usuarios con role 'admin').
+ */
 export async function getAdmins() {
     const { data, error } = await supabase
         .from('users')
         .select('id, email, username, role')
         .eq('role', 'admin')
-        .limit(100);
+        .limit(100); // Límite razonable
 
     if (error) {
         console.error('getAdmins error', error);
         return [];
     }
 
+    // Mapea resultado a estructura más simple
     return (data ?? []).map((u: any) => ({ id: u.id, username: u.username, email: u.email }));
 }

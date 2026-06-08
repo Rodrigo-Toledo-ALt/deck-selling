@@ -1,4 +1,6 @@
-// src/components/ProtectedRoute.tsx
+// ProtectedRoute.tsx
+// Ruta protegida genérica: requiere login y opcionalmente rol de admin.
+
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/supabase/AuthProvider.tsx';

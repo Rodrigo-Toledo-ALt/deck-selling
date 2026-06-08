@@ -1,4 +1,9 @@
-// src/components/Navbar.tsx
+// Navbar.tsx
+// Barra de navegación principal con menú responsive, autenticación, carrito y sidebar.
+// - Muestra diferentes opciones según si el usuario está logueado o no.
+// - Gestiona carrito local (invitado) y remoto (logueado).
+// - Incluye sidebar para ver contenido del carrito sin salir de la página (solo invitados).
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Menu, X, ShoppingCart, LayoutDashboard, LogOut, UserCircle } from 'lucide-react';
@@ -11,36 +16,50 @@ import {
 import { loadLocalCart, type LocalCartItem } from '@/data/local_cart';
 import { supabase } from '@/supabase/supabase-client.ts';
 
+// Función auxiliar para contar total de items en carrito local
 function getTotalCount(items: LocalCartItem[]) {
     return items.reduce((acc, it) => acc + it.quantity, 0);
 }
 
 const Navbar = () => {
+    // Estados para UI: menú hamburguesa, diálogo de confirmación, sidebar de carrito
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [cartOpen, setCartOpen] = useState(false);
-    const [cartVisible, setCartVisible] = useState(false);
+    const [cartVisible, setCartVisible] = useState(false); // Para animar entrada/salida del sidebar
+
+    // Estados de datos: items del carrito local y cantidad en carrito remoto
     const [localItems, setLocalItems] = useState<LocalCartItem[]>([]);
     const [remoteCartCount, setRemoteCartCount] = useState(0);
+
+    // Contexto de autenticación (usuario, rol, función de logout)
     const { user, role, signOut } = useAuth();
     const isAuthenticated = !!user;
     const navigate = useNavigate();
 
+    // ── Efecto: carga y escucha cambios en carrito LOCAL ────────────────
     useEffect(() => {
+        // Si está logueado, no seguimos escuchando cambios en localStorage
         if (isAuthenticated) return;
+
+        // Refresca items del carrito local y escucha evento global 'cartUpdated'
         const refresh = () => setLocalItems(loadLocalCart());
         refresh();
         const interval = setInterval(refresh, 600);
         window.addEventListener('cartUpdated', refresh);
+
+        // Cleanup: limpiar interval y listener al desmontar o cambiar auth
         return () => {
             clearInterval(interval);
             window.removeEventListener('cartUpdated', refresh);
         };
     }, [isAuthenticated]);
 
+    // ── Función: obtiene cantidad de items en carrito REMOTO ─────────────
     const fetchRemoteCount = useCallback(async () => {
         if (!user) return;
         try {
+            // Busca el carrito del usuario
             const { data: cart, error: cartErr } = await supabase
                 .from('carts')
                 .select('id')
@@ -52,6 +71,7 @@ const Navbar = () => {
                 return;
             }
 
+            // Cuenta total de items en ese carrito
             const { data, error } = await supabase
                 .from('cart_items')
                 .select('quantity')
@@ -65,6 +85,7 @@ const Navbar = () => {
         }
     }, [user]);
 
+    // ── Efecto: carga y escucha cambios en carrito REMOTO ───────────────
     useEffect(() => {
         if (!isAuthenticated) {
             setRemoteCartCount(0);
@@ -73,36 +94,43 @@ const Navbar = () => {
         fetchRemoteCount();
         const interval = setInterval(fetchRemoteCount, 5000);
         window.addEventListener('cartUpdated', fetchRemoteCount);
+
         return () => {
             clearInterval(interval);
             window.removeEventListener('cartUpdated', fetchRemoteCount);
         };
     }, [isAuthenticated, fetchRemoteCount]);
 
+    // ── Efecto: anima entrada/salida del sidebar de carrito ─────────────
     useEffect(() => {
         if (cartOpen) {
+            // Doble requestAnimationFrame asegura que el DOM esté listo para animar
             requestAnimationFrame(() => requestAnimationFrame(() => setCartVisible(true)));
         } else {
             setCartVisible(false);
         }
     }, [cartOpen]);
 
+    // ── Efecto: permite cerrar sidebar con tecla Escape ──────────────────
     useEffect(() => {
         const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') closeCart(); };
         window.addEventListener('keydown', onKey);
         return () => window.removeEventListener('keydown', onKey);
     }, []);
 
+    // ── Funciones auxiliares para el sidebar de carrito ──────────────────
     const closeCart = () => {
         setCartVisible(false);
-        setTimeout(() => setCartOpen(false), 300);
+        setTimeout(() => setCartOpen(false), 300); // Espera animación
     };
 
+    // ── Valores calculados ───────────────────────────────────────────────
     const cartCount = isAuthenticated ? remoteCartCount : getTotalCount(localItems);
     const cartSubtotal = localItems.reduce(
         (sum, it) => sum + Number(it.price ?? 0) * it.quantity, 0
     );
 
+    // ── Handlers de navegación ───────────────────────────────────────────
     const handleCartClick = () => {
         if (isAuthenticated) navigate('/cart');
         else setCartOpen(true);
@@ -113,6 +141,7 @@ const Navbar = () => {
         navigate('/login?redirect=cart');
     };
 
+    // ── Logout: limpia sesión y redirige a home ──────────────────────────
     const doLogout = async () => {
         try {
             await signOut?.();
@@ -127,6 +156,8 @@ const Navbar = () => {
         }
     };
 
+    // ── Componentes auxiliares ───────────────────────────────────────────
+    // Botón reutilizable para carrito (badge + contador)
     const CartButton = ({ onClick }: { onClick?: () => void }) => (
         <button
             onClick={onClick ?? handleCartClick}
@@ -143,6 +174,7 @@ const Navbar = () => {
         </button>
     );
 
+    // Botón de logout con confirmación modal
     const LogoutButton = ({ className = '' }: { className?: string }) => (
         <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
             <AlertDialogTrigger asChild>
@@ -169,13 +201,14 @@ const Navbar = () => {
         </AlertDialog>
     );
 
+    // ── Renderizado principal ────────────────────────────────────────────
     return (
         <>
+            {/* Barra de navegación principal */}
             <nav className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
                 <div className="container mx-auto px-4 py-4">
                     <div className="flex items-center justify-between">
-
-                        {/* Left */}
+                        {/* Logo y enlaces visibles en escritorio */}
                         <div className="flex items-center space-x-6">
                             <Link to="/" className="flex items-center">
                                 <span className="font-bold text-xl md:text-2xl text-gradient">Pauper Forge</span>
@@ -186,7 +219,7 @@ const Navbar = () => {
                             </div>
                         </div>
 
-                        {/* Right — desktop */}
+                        {/* Opciones de usuario visibles en escritorio */}
                         <div className="hidden md:flex items-center space-x-8">
                             {!isAuthenticated ? (
                                 <>
@@ -196,13 +229,14 @@ const Navbar = () => {
                                 </>
                             ) : (
                                 <>
-                                    {/* ✅ All authenticated users (including admins) keep access to Cart and Account */}
+                                    {/* 🟢 Todos los usuarios logueados ven carrito y cuenta */}
                                     <CartButton />
                                     <Link to="/account" className="flex items-center text-foreground hover:text-primary transition-colors">
                                         <UserCircle className="h-5 w-5 mr-1" />
                                         <span>My Account</span>
                                     </Link>
 
+                                    {/* 🔵 Solo admins ven dashboard */}
                                     {role === "admin" && (
                                         <Link to="/admin/decks" className="flex items-center text-foreground hover:text-primary transition-colors">
                                             <LayoutDashboard className="h-5 w-5 mr-1" />
@@ -215,7 +249,7 @@ const Navbar = () => {
                             )}
                         </div>
 
-                        {/* Mobile toggle */}
+                        {/* Botón hamburguesa en móviles */}
                         <div className="md:hidden">
                             <button
                                 onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -227,7 +261,7 @@ const Navbar = () => {
                         </div>
                     </div>
 
-                    {/* Mobile menu */}
+                    {/* Menú desplegado en móviles */}
                     {isMenuOpen && (
                         <div className="md:hidden mt-4 py-4 space-y-4 flex flex-col">
                             <Link to="/" className="text-foreground hover:text-primary transition-colors" onClick={() => setIsMenuOpen(false)}>Home</Link>
@@ -262,18 +296,21 @@ const Navbar = () => {
                 </div>
             </nav>
 
-            {/* ── Cart Sidebar (solo anon) ──────────────────────────────────── */}
+            {/* Sidebar del carrito (solo para invitados) */}
             {cartOpen && (
                 <div className="fixed inset-0 z-[60] flex justify-end">
+                    {/* Overlay oscuro */}
                     <div
                         className="absolute inset-0 bg-black/50 transition-opacity duration-300"
                         style={{ opacity: cartVisible ? 1 : 0 }}
                         onClick={closeCart}
                     />
+                    {/* Panel lateral */}
                     <div
                         className="relative w-80 max-w-full h-full bg-background border-l border-border flex flex-col shadow-2xl transition-transform duration-300 ease-out"
                         style={{ transform: cartVisible ? 'translateX(0)' : 'translateX(100%)' }}
                     >
+                        {/* Cabecera del sidebar */}
                         <div className="flex items-center justify-between px-4 py-4 border-b border-border">
                             <h2 className="font-semibold text-lg flex items-center gap-2">
                                 <ShoppingCart className="h-5 w-5" />
@@ -289,6 +326,7 @@ const Navbar = () => {
                             </button>
                         </div>
 
+                        {/* Lista de items en carrito */}
                         <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
                             {localItems.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-3 py-12">
@@ -325,6 +363,7 @@ const Navbar = () => {
                             )}
                         </div>
 
+                        {/* Total y botones de acción */}
                         <div className="px-4 py-4 border-t border-border space-y-3">
                             {localItems.length > 0 && (
                                 <div className="flex justify-between text-sm font-semibold">

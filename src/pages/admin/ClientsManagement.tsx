@@ -1,3 +1,10 @@
+// ClientsManagement.tsx
+// Página administrativa para listar y gestionar usuarios (clientes).
+// - carga todos los clientes desde getAllClients
+// - permite buscar por username/email/role
+// - ver detalle y activar/desactivar usuarios
+// Comentarios concisos en español para el TFG.
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -11,18 +18,25 @@ import { getAllClients, Client, toggleUserStatus } from '@/data/users_remote';
 import Navbar from "@/components/Navbar.tsx";
 import AdminLayout from "@/components/AdminLayout.tsx";
 
+// Formatea números como moneda en EUR
+const currency = (n: number) =>
+    new Intl.NumberFormat(undefined, { style: 'currency', currency: 'EUR' }).format(n);
+
 const ClientsManagement: React.FC = () => {
     const { toast } = useToast();
     const navigate = useNavigate();
-    const [loading, setLoading] = useState(false);
-    const [clients, setClients] = useState<Client[]>([]);
-    const [query, setQuery] = useState('');
 
+    // Estados principales
+    const [loading, setLoading] = useState(false);      // carga inicial
+    const [clients, setClients] = useState<Client[]>([]); // lista de clientes desde el servidor
+    const [query, setQuery] = useState('');             // texto de búsqueda
+
+    // Efecto inicial: cargar todos los clientes
     useEffect(() => {
         (async () => {
             try {
                 setLoading(true);
-                const data = await getAllClients();
+                const data = await getAllClients(); // llamada al servicio remoto
                 setClients(data);
             } catch (e) {
                 console.error(e);
@@ -33,6 +47,7 @@ const ClientsManagement: React.FC = () => {
         })();
     }, []);
 
+    // Filtrado en memoria según query (username, email, role)
     const filtered = clients.filter(c => {
         const q = query.toLowerCase().trim();
         if (!q) return true;
@@ -50,6 +65,7 @@ const ClientsManagement: React.FC = () => {
                 <div className="p-4 md:p-6 space-y-4">
 
                     <Card>
+                        {/* Cabecera con buscador */}
                         <CardHeader className="flex items-center justify-between">
                             <CardTitle>Clients</CardTitle>
                             <div className="flex items-center gap-2 w-full md:w-96">
@@ -57,10 +73,11 @@ const ClientsManagement: React.FC = () => {
                                 <Input
                                     placeholder="Search by username, email or role..."
                                     value={query}
-                                    onChange={(e) => setQuery(e.target.value)}
+                                    onChange={(e) => setQuery(e.target.value)} // actualización del filtro
                                 />
                             </div>
                         </CardHeader>
+
                         <CardContent>
                             <div className="overflow-x-auto">
                                 <Table>
@@ -75,27 +92,33 @@ const ClientsManagement: React.FC = () => {
                                             <TableHead className="text-right">Actions</TableHead>
                                         </TableRow>
                                     </TableHeader>
+
                                     <TableBody>
                                         {loading ? (
+                                            // Estado de carga
                                             <TableRow>
                                                 <TableCell colSpan={7} className="text-center py-8">Loading...</TableCell>
                                             </TableRow>
                                         ) : filtered.length === 0 ? (
+                                            // Sin resultados tras filtrar
                                             <TableRow>
                                                 <TableCell colSpan={7} className="text-center py-8">No results</TableCell>
                                             </TableRow>
                                         ) : (
+                                            // Filas de clientes
                                             filtered.map(c => (
                                                 <TableRow key={c.id}>
                                                     <TableCell className="font-medium">{c.username}</TableCell>
                                                     <TableCell>{c.email}</TableCell>
                                                     <TableCell>
+                                                        {/* Badge para rol (visual) */}
                                                         <Badge variant={c.role === 'admin' ? 'default' : 'secondary'}>
                                                             {c.role}
                                                         </Badge>
                                                     </TableCell>
                                                     <TableCell>{c.created_at ? new Date(c.created_at).toLocaleDateString() : '-'}</TableCell>
                                                     <TableCell>
+                                                        {/* Badge para estado (activo/inactivo) */}
                                                         <Badge variant={c.status === 'active' ? 'default' : 'destructive'}>
                                                             {c.status}
                                                         </Badge>
@@ -105,28 +128,37 @@ const ClientsManagement: React.FC = () => {
                                                     </TableCell>
                                                     <TableCell className="text-right">
                                                         <div className="flex justify-end gap-2">
+                                                            {/* Navegar al detalle del cliente */}
                                                             <Button size="sm" variant="outline" onClick={() => navigate(`/admin/clients/${c.id}`)}>
                                                                 View
                                                             </Button>
+
+                                                            {/* Activar/Desactivar usuario:
+                                                                - llama a toggleUserStatus en el servidor
+                                                                - actualiza la lista localmente (optimistic-ish)
+                                                                - muestra toast según resultado
+                                                            */}
                                                             <Button
                                                                 size="sm"
                                                                 variant={c.status === 'active' ? 'destructive' : 'default'}
                                                                 onClick={async () => {
-                                                                    const success = await toggleUserStatus(c.id, c.status === 'active' ? 'inactive' : 'active');
+                                                                    const newStatus = c.status === 'active' ? 'inactive' : 'active';
+                                                                    const success = await toggleUserStatus(c.id, newStatus);
                                                                     if (success) {
+                                                                        // Actualización local para reflejar el cambio sin recargar
                                                                         setClients(prev => prev.map(client =>
                                                                             client.id === c.id
-                                                                                ? {...client, status: c.status === 'active' ? 'inactive' : 'active'}
+                                                                                ? {...client, status: newStatus}
                                                                                 : client
                                                                         ));
                                                                         toast({
-                                                                            title: 'Success',
-                                                                            description: `User ${c.status === 'active' ? 'deactivated' : 'activated'} successfully`
+                                                                            title: 'Éxito',
+                                                                            description: `Usuario ${newStatus === 'inactive' ? 'desactivado' : 'activado'} correctamente`
                                                                         });
                                                                     } else {
                                                                         toast({
                                                                             title: 'Error',
-                                                                            description: 'Failed to update user status',
+                                                                            description: 'No se pudo actualizar el estado del usuario',
                                                                             variant: 'destructive'
                                                                         });
                                                                     }

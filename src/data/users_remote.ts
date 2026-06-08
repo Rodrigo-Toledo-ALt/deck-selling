@@ -1,6 +1,12 @@
-// src/data/users_remote.ts
+// users_remote.ts
+// Gestiona la obtención de datos de clientes (usuarios) desde Supabase.
+// Incluye listado básico, detalle completo (direcciones, pagos, pedidos) y cambio de estado.
+
 import { supabase } from '@/lib/supabase';
 
+// ── TIPOS ───────────────────────────────────────────────────────────────
+
+// Representa un usuario en la tabla 'users'
 export interface UserRow {
     id: string;
     username: string;
@@ -14,6 +20,7 @@ export interface UserRow {
     deactivated_by_role?: 'user' | 'admin' | 'system' | null;
 }
 
+// Dirección de envío/facturación de un cliente
 export interface Address {
     id: string;
     address: string;
@@ -23,27 +30,31 @@ export interface Address {
     country: string;
 }
 
+// Método de pago guardado de un cliente
 export interface PaymentMethod {
     id: string;
-    card_type: string;
-    expiry_date: string;
+    card_type: string;    // Ej: Visa, Mastercard
+    expiry_date: string;  // Formato: MM/YY
 }
 
+// Item dentro de un pedido
 export interface OrderItem {
     id: string;
-    product_id?: string | null;
-    product_name?: string | null;
-    quantity?: number | null;
-    price?: number | null;
+    product_id?: string | null;   // ID del producto (opcional)
+    product_name?: string | null; // Nombre del producto (opcional)
+    quantity?: number | null;     // Cantidad comprada
+    price?: number | null;        // Precio unitario
 }
 
+// Pedido realizado por un cliente
 export interface Order {
     id: string;
-    order_date: string | null;
-    total_amount: number;
-    items: OrderItem[];
+    order_date: string | null; // Fecha del pedido
+    total_amount: number;      // Total pagado
+    items: OrderItem[];         // Artículos del pedido
 }
 
+// Cliente con datos mínimos (para listados)
 export interface Client {
     id: string;
     username: string;
@@ -51,13 +62,14 @@ export interface Client {
     role: 'customer' | 'admin';
     created_at?: string;
     birthdate?: string | null;
-    ordersCount?: number;
+    ordersCount?: number; // Número de pedidos realizados
     status: 'active' | 'inactive';
     inactivated_at?: string | null;
     deactivated_by?: string | null;
     deactivated_by_role?: 'user' | 'admin' | 'system' | null;
 }
 
+// Cliente con datos completos (detalle)
 export interface ClientDetail {
     id: string;
     username: string;
@@ -65,23 +77,27 @@ export interface ClientDetail {
     role: 'customer' | 'admin';
     created_at?: string;
     birthdate?: string | null;
-    addresses: Address[];
-    payment_methods: PaymentMethod[];
-    orders: Order[];
+    addresses: Address[];         // Direcciones guardadas
+    payment_methods: PaymentMethod[]; // Métodos de pago guardados
+    orders: Order[];               // Historial de pedidos
     status: 'active' | 'inactive';
     inactivated_at?: string | null;
     deactivated_by?: string | null;
     deactivated_by_role?: 'user' | 'admin' | 'system' | null;
 }
 
+// ── CONSULTAS ───────────────────────────────────────────────────────────
+
+// Selección base de campos de usuario
 const userBaseSelect = `
   id, username, email, role, created_at, birthdate, status, inactivated_at, deactivated_by, deactivated_by_role
 `;
 
 /**
- * getAllClients - sin cambios
+ * Obtiene todos los clientes con el número de pedidos realizados.
  */
 export async function getAllClients(): Promise<Client[]> {
+    // 1) Obtener todos los usuarios
     const { data: users, error: usersErr } = await supabase.from('users').select(userBaseSelect);
     if (usersErr) {
         console.error('getAllClients users error:', usersErr);
@@ -90,6 +106,7 @@ export async function getAllClients(): Promise<Client[]> {
     const list = (users ?? []) as UserRow[];
     if (!list.length) return [];
 
+    // 2) Contar pedidos por usuario
     const userIds = list.map(u => u.id);
     const { data: orders, error: ordersErr } = await supabase
         .from('orders')
@@ -97,11 +114,13 @@ export async function getAllClients(): Promise<Client[]> {
         .in('user_id', userIds);
     if (ordersErr) console.error('getAllClients orders error:', ordersErr);
 
+    // Crear mapa de conteo de pedidos por usuario
     const ordersByUser = new Map<string, number>();
     (orders ?? []).forEach((o: any) => {
         ordersByUser.set(o.user_id, (ordersByUser.get(o.user_id) ?? 0) + 1);
     });
 
+    // 3) Combinar datos y devolver
     return list.map(u => ({
         id: u.id,
         username: u.username,
@@ -118,13 +137,11 @@ export async function getAllClients(): Promise<Client[]> {
 }
 
 /**
- * getClientById
- * - trae user, addresses, payment_methods, orders
- * - por cada order trae order_items + product (products.name)
- * - normaliza cada item para exponer product_name
+ * Obtiene el detalle completo de un cliente por ID.
+ * Incluye direcciones, métodos de pago y pedidos con artículos.
  */
 export async function getClientById(id: string): Promise<ClientDetail | undefined> {
-    // Usuario
+    // 1) Obtener datos básicos del usuario
     const { data: user, error: userErr } = await supabase
         .from('users')
         .select(userBaseSelect)
@@ -135,35 +152,34 @@ export async function getClientById(id: string): Promise<ClientDetail | undefine
         return undefined;
     }
 
-    // Direcciones
+    // 2) Obtener direcciones del cliente
     const { data: addresses, error: addrErr } = await supabase
         .from('addresses')
         .select('id, address, city, state, postal_code, country')
         .eq('user_id', id);
     if (addrErr) console.error('addresses error:', addrErr);
 
-    // Métodos de pago (sin card_number)
+    // 3) Obtener métodos de pago del cliente
     const { data: pms, error: pmErr } = await supabase
         .from('payment_methods')
         .select('id, card_type, expiry_date')
         .eq('user_id', id);
     if (pmErr) console.error('payment_methods error:', pmErr);
 
-    // Pedidos (orders)
+    // 4) Obtener pedidos del cliente
     const { data: orders, error: ordersErr } = await supabase
         .from('orders')
         .select('id, order_date, total_amount')
         .eq('user_id', id)
-        .order('order_date', { ascending: false });
+        .order('order_date', { ascending: false }); // Más recientes primero
     if (ordersErr) console.error('orders error:', ordersErr);
 
-    // Si no hay pedidos, devolvemos vacío en orders
+    // 5) Obtener artículos de cada pedido y sus nombres de producto
     const orderIds = (orders ?? []).map((o: any) => o.id);
     const itemsByOrder = new Map<string, OrderItem[]>();
 
     if (orderIds.length > 0) {
-        // IMPORTANTE: pedimos order_items e incluimos product: products(name)
-        // Ajusta 'products(name)' si tu tabla products usa otra columna (p.ej. title)
+        // IMPORTANTE: se une con tabla 'products' para obtener nombre
         const { data: items, error: itemsErr } = await supabase
             .from('order_items')
             .select('id, order_id, product_id, quantity, price, product:products(name)')
@@ -173,6 +189,7 @@ export async function getClientById(id: string): Promise<ClientDetail | undefine
             console.error('order_items error:', itemsErr);
         } else {
             for (const it of items ?? []) {
+                // Extraer nombre del producto o usar valor por defecto
                 const productName =
                     (it.product && (it.product.name ?? it.product.title ?? null)) ??
                     null;
@@ -185,6 +202,7 @@ export async function getClientById(id: string): Promise<ClientDetail | undefine
                     price: it.price !== null && it.price !== undefined ? Number(it.price) : 0,
                 };
 
+                // Agregar item al pedido correspondiente
                 const arr = itemsByOrder.get(it.order_id) ?? [];
                 arr.push(entry);
                 itemsByOrder.set(it.order_id, arr);
@@ -192,6 +210,7 @@ export async function getClientById(id: string): Promise<ClientDetail | undefine
         }
     }
 
+    // 6) Combinar pedidos con sus artículos
     const ordersEnriched: Order[] = (orders ?? []).map((o: any) => ({
         id: o.id,
         order_date: o.order_date ?? null,
@@ -199,6 +218,7 @@ export async function getClientById(id: string): Promise<ClientDetail | undefine
         items: itemsByOrder.get(o.id) ?? [],
     }));
 
+    // 7) Devolver objeto completo
     return {
         id: user.id,
         username: user.username,
@@ -221,13 +241,15 @@ export async function getClientById(id: string): Promise<ClientDetail | undefine
 }
 
 /**
- * toggleUserStatus - sin cambios
+ * Activa o desactiva un usuario.
+ * Solo puede ser llamado por un admin.
  */
 export async function toggleUserStatus(userId: string, newStatus: 'active' | 'inactive'): Promise<boolean> {
+    // 1) Verificar sesión activa
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return false;
 
-    // Verificar que el usuario actual sea admin
+    // 2) Verificar que el usuario actual sea admin
     const { data: currentUser } = await supabase
         .from('users')
         .select('role')
@@ -239,6 +261,7 @@ export async function toggleUserStatus(userId: string, newStatus: 'active' | 'in
         return false;
     }
 
+    // 3) Preparar datos para actualizar
     const updates: any = {
         status: newStatus,
         inactivated_at: newStatus === 'inactive' ? new Date().toISOString() : null,
@@ -246,6 +269,7 @@ export async function toggleUserStatus(userId: string, newStatus: 'active' | 'in
         deactivated_by_role: newStatus === 'inactive' ? 'admin' : null
     };
 
+    // 4) Actualizar estado en BD
     const { error } = await supabase
         .from('users')
         .update(updates)

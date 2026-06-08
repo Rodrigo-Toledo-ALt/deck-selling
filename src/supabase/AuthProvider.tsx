@@ -1,4 +1,6 @@
-// src/supabase/AuthProvider.tsx
+// AuthProvider.tsx
+// Contexto de autenticación: gestiona sesión/usuario, role y sincroniza el carrito anónimo al iniciar sesión.
+
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { supabase } from './supabase-client.ts';
 import type { Session, User } from '@supabase/supabase-js';
@@ -20,24 +22,29 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    // Estado público del contexto
     const [user, setUser] = useState<User | null>(null);
     const [session, setSession] = useState<Session | null>(null);
     const [role, setRole] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
 
+    // Referencia para evitar procesar el mismo userId varias veces seguidas
     const lastUserIdRef = useRef<string | null>(null);
 
+    // Centraliza la lógica al recibir/actualizar sesión
     const handleSession = async (s: Session | null, isFreshLogin = false) => {
         setSession(s ?? null);
         setUser(s?.user ?? null);
 
         if (!s?.user?.id) {
+            // No hay usuario: limpiar estado relevante
             setRole(null);
             setLoading(false);
             lastUserIdRef.current = null;
             return;
         }
 
+        // Ignorar eventos duplicados que a veces emite Supabase
         if (s.user.id === lastUserIdRef.current) {
             console.log("⏩ Ignorando evento duplicado para:", s.user.id);
             setLoading(false);
@@ -49,12 +56,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
             console.log("⚡ Procesando sesión para:", s.user.id);
 
+            // Asegura que exista la fila en la tabla `users`
             await authController.createUserIfNotExists({
                 id: s.user.id,
                 email: s.user.email,
                 user_metadata: s.user.user_metadata,
             });
 
+            // Carga del role desde la tabla users
             const { data, error } = await supabase
                 .from('users')
                 .select('role')
@@ -69,6 +78,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 setRole(data?.role ?? null);
             }
 
+            // Si es un login "fresco", fusionar carrito anónimo al remoto
             if (isFreshLogin) {
                 try {
                     await mergeAnonymousCartOnLogin();
@@ -85,6 +95,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
+    // Suscripción a eventos de auth de Supabase
     useEffect(() => {
         const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
             console.log('🔐 auth event:', event, s?.user?.id ?? 'no user');
@@ -105,6 +116,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return () => sub.subscription.unsubscribe();
     }, []);
 
+    // Logout: limpia estado local además de llamar al authController
     const signOut = async () => {
         await authController.signOut();
         setUser(null);

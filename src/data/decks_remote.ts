@@ -1,21 +1,30 @@
-// src/data/decks_remote.ts
+// decks_remote.ts
+// Gestiona operaciones relacionadas con mazos de Commander almacenados en Supabase.
+// Incluye carga, filtrado, visibilidad, eliminación y generación de URLs firmadas para imágenes.
+
 import { supabase } from '@/lib/supabase';
 
+// ── TIPOS ───────────────────────────────────────────────────────────────
+
+// Colores válidos para mazos Commander
 export type DeckColor = 'W' | 'U' | 'B' | 'R' | 'G';
 
+// Una cara de una carta (anverso/reverso)
 export interface CardFace {
-    name: string;
-    manaCost: string;
-    image: string;
-    typeLine?: string;
+    name: string;        // Nombre de la carta en esta cara
+    manaCost: string;    // Coste de maná (ej: "{2}{R}")
+    image: string;       // URL de la imagen
+    typeLine?: string;   // Tipo opcional (ej: "Instant")
 }
 
+// Carta en un mazo con cantidad y caras
 export interface CardInfo {
-    name: string;
-    quantity: number;
-    faces: CardFace[];
+    name: string;          // Nombre base de la carta
+    quantity: number;      // Cantidad en el mazo
+    faces: CardFace[];     // Caras (una o dos)
 }
 
+// Agrupa cartas por categoría
 export interface DeckData {
     commander: CardInfo[];
     creatures: CardInfo[];
@@ -26,31 +35,33 @@ export interface DeckData {
     lands: CardInfo[];
     planeswalkers: CardInfo[];
     sideboard: CardInfo[];
-    tokens?: CardInfo[];
-    others?: CardInfo[];
+    tokens?: CardInfo[];   // Opcional
+    others?: CardInfo[];   // Otros tipos
 }
 
+// Representa un mazo completo
 export interface Deck {
     id: string;
     name: string;
-    format: 'Commander';
-    colors: DeckColor[];
+    format: 'Commander'; // Solo Commander por ahora
+    colors: DeckColor[]; // Colores del mazo
     description: string;
-    main_image_path: string;
+    main_image_path: string; // Ruta a imagen principal
     price: number;
     deckData: DeckData;
-    author_name?: string | null;
-    author_website?: string | null;
-    created_at?: string;
-    is_visible: boolean;
+    author_name?: string | null;    // Opcional
+    author_website?: string | null; // Opcional
+    created_at?: string;            // Fecha de creación
+    is_visible: boolean;            // Visible en tienda
 }
 
+// Fila raw de la tabla 'products'
 type ProductRow = {
     id: string;
     name: string;
     description: string | null;
     price: number;
-    deck_cards: any;
+    deck_cards: any; // JSON
     main_image_path: string | null;
     colors: string | null;
     format: string | null;
@@ -60,15 +71,23 @@ type ProductRow = {
     is_visible: boolean;
 };
 
+// ── FUNCIONES AUXILIARES ────────────────────────────────────────────────
+
+/**
+ * Parsea una cadena de colores ("WUBRG", "W, U, B", etc.) a un array tipado.
+ * Retorna [] si la entrada es inválida.
+ */
 function parseColors(input: string | null | undefined): DeckColor[] {
     if (!input) return [];
     const s = input.trim();
+    // Divide por comas, espacios o caracteres individuales
     const tokens = (s.includes(',') || s.includes(' ')) ? s.split(/[,\s]+/) : s.split('');
     return tokens
         .map((c) => c.trim().toUpperCase())
         .filter((c): c is DeckColor => ['W', 'U', 'B', 'R', 'G'].includes(c));
 }
 
+// Campos seleccionados en consultas a 'products'
 const baseSelect = `
   id,
   name,
@@ -84,9 +103,14 @@ const baseSelect = `
   is_visible
 `;
 
+/**
+ * Transforma una fila de 'products' en un objeto Deck.
+ * Retorna null si el formato no es 'Commander'.
+ */
 function mapProductToDeck(row: ProductRow): Deck | null {
     if (!row.format || row.format !== 'Commander') return null;
 
+    // Maneja el JSON de cartas con valores por defecto
     const d = row.deck_cards && typeof row.deck_cards === 'object' ? row.deck_cards : {};
     const deckData: DeckData = {
         commander: d.commander ?? [],
@@ -118,6 +142,12 @@ function mapProductToDeck(row: ProductRow): Deck | null {
     };
 }
 
+// ── FUNCIONES DE IMAGEN ─────────────────────────────────────────────────
+
+/**
+ * Genera una URL firmada para la imagen principal del mazo.
+ * ttlSeconds: tiempo de validez en segundos (por defecto 1h).
+ */
 export async function getSignedMainImageUrl(deck: Deck, ttlSeconds = 3600): Promise<string> {
     if (!deck.main_image_path) return '';
     const { data, error } = await supabase.storage
@@ -130,6 +160,10 @@ export async function getSignedMainImageUrl(deck: Deck, ttlSeconds = 3600): Prom
     return data?.signedUrl ?? '';
 }
 
+/**
+ * Genera una URL firmada para una imagen de carta específica.
+ * ttlSeconds: tiempo de validez en segundos (por defecto 1h).
+ */
 export async function getSignedCardImageUrl(path: string, ttlSeconds = 3600): Promise<string> {
     if (!path) return '';
     const { data, error } = await supabase.storage
@@ -142,6 +176,12 @@ export async function getSignedCardImageUrl(path: string, ttlSeconds = 3600): Pr
     return data?.signedUrl ?? '';
 }
 
+// ── FUNCIONES CRUD ──────────────────────────────────────────────────────
+
+/**
+ * Obtiene todos los mazos visibles (o todos si includeInvisible=true).
+ * Ordenados por fecha de creación descendente.
+ */
 export const getAllDecks = async (includeInvisible = false): Promise<Deck[]> => {
     let query = supabase
         .from('products')
@@ -159,9 +199,13 @@ export const getAllDecks = async (includeInvisible = false): Promise<Deck[]> => 
         console.error('getAllDecks error:', error);
         return [];
     }
+    // Filtra objetos nulos resultantes del mapeo
     return (data ?? []).map(mapProductToDeck).filter(Boolean) as Deck[];
 };
 
+/**
+ * Obtiene hasta 6 mazos destacados (visibles y recientes).
+ */
 export const getFeaturedDecks = async (): Promise<Deck[]> => {
     const { data, error } = await supabase
         .from('products')
@@ -175,9 +219,13 @@ export const getFeaturedDecks = async (): Promise<Deck[]> => {
         console.error('getFeaturedDecks error:', error);
         return [];
     }
+    // Filtra objetos nulos resultantes del mapeo
     return (data ?? []).map(mapProductToDeck).filter(Boolean) as Deck[];
 };
 
+/**
+ * Busca un mazo por ID (visible a menos que includeInvisible=true).
+ */
 export const getDeckById = async (id: string, includeInvisible = false): Promise<Deck | undefined> => {
     let query = supabase
         .from('products')
@@ -198,6 +246,9 @@ export const getDeckById = async (id: string, includeInvisible = false): Promise
     return deck ?? undefined;
 };
 
+/**
+ * Cambia la visibilidad de un mazo en la tienda.
+ */
 export const setDeckVisibility = async (id: string, isVisible: boolean): Promise<void> => {
     const { error } = await supabase
         .from('products')
@@ -210,7 +261,11 @@ export const setDeckVisibility = async (id: string, isVisible: boolean): Promise
     }
 };
 
+/**
+ * Elimina un mazo tras verificar que no tenga pedidos asociados.
+ */
 export async function deleteDeck(deckId: string): Promise<void> {
+    // Verifica si hay pedidos asociados
     const { count, error: checkError } = await supabase
         .from('order_items')
         .select('id', { count: 'exact', head: true })
@@ -222,6 +277,7 @@ export async function deleteDeck(deckId: string): Promise<void> {
         throw new Error('Este mazo no puede eliminarse porque tiene pedidos asociados.');
     }
 
+    // Elimina el mazo si pasa la verificación
     const { error } = await supabase
         .from('products')
         .delete()

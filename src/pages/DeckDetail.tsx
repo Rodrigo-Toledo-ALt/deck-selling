@@ -1,3 +1,7 @@
+// DeckDetail.tsx
+// Página de detalle de un deck: carga deck + imágenes firmadas, muestra secciones de cartas,
+// vista previa/flipping de cartas, popup ampliado y botón para añadir el deck al carrito.
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
@@ -33,25 +37,32 @@ const DeckDetail: React.FC = () => {
     const { user, role } = useAuth();
     const { toast } = useToast();
 
+    // Estado principal
     const [deck, setDeck] = useState<Deck | null>(null);
     const [signedMainImage, setSignedMainImage] = useState<string>('');
     const [deckDataSigned, setDeckDataSigned] = useState<DeckDataWithSigned | null>(null);
     const [loading, setLoading] = useState(true);
+
+    // UI: carta mostrada en el lateral, flipping y popup ampliado
     const [currentCard, setCurrentCard] = useState<CardInfoWithSigned | null>(null);
     const [isFlip, setIsFlip] = useState(false);
     const [isAdding, setIsAdding] = useState(false);
     const [popupCard, setPopupCard] = useState<CardInfoWithSigned | null>(null);
     const [popupFaceIndex, setPopupFaceIndex] = useState(0);
 
+    // Añadir deck al carrito (remote o local según sesión)
     const handleAddToCart = async () => {
         if (!deck) return;
         setIsAdding(true);
         try {
             if (user) {
+                // carrito remoto: suma una unidad del deck
                 await addToCart(deck.id, 1);
             } else {
+                // carrito local: persistir en localStorage
                 addToLocalCart(deck.id, deck.name, deck.price, signedMainImage || deck.imageUrl || null, 1);
             }
+            // notificar a listeners externos que el carrito cambió
             window.dispatchEvent(new Event('cartUpdated'));
             toast({
                 title: 'Added to cart',
@@ -70,6 +81,7 @@ const DeckDetail: React.FC = () => {
         }
     };
 
+    // Carga del deck y resolución de URLs firmadas para imagen principal y caras
     useEffect(() => {
         let alive = true;
         (async () => {
@@ -80,7 +92,7 @@ const DeckDetail: React.FC = () => {
             setLoading(true);
             try {
                 const isAdmin = role === 'admin';
-                const d = await getDeckById(id, isAdmin);
+                const d = await getDeckById(id, isAdmin); // obtiene deck (visibilidad según role)
                 if (!alive) return;
 
                 if (!d) {
@@ -92,10 +104,12 @@ const DeckDetail: React.FC = () => {
 
                 setDeck(d);
 
+                // URL firmada para imagen principal
                 const mainUrl = await getSignedMainImageUrl(d, 3600);
                 if (!alive) return;
                 setSignedMainImage(mainUrl || '');
 
+                // Secciones a procesar en orden
                 const sections: (keyof DeckData)[] = [
                     'commander',
                     'planeswalkers',
@@ -111,6 +125,7 @@ const DeckDetail: React.FC = () => {
 
                 const signedData: Partial<DeckDataWithSigned> = {};
 
+                // Para cada carta, resolver URLs firmadas de sus caras (si tiene imagen)
                 for (const section of sections) {
                     const list = (d.deckData as any)[section] as CardInfo[] | undefined;
                     const cardsWithSigned: CardInfoWithSigned[] = list && list.length
@@ -135,6 +150,7 @@ const DeckDetail: React.FC = () => {
                 const s = signedData as DeckDataWithSigned;
                 setDeckDataSigned(s);
 
+                // Seleccionar carta inicial para mostrar en el lateral (preferir comandante)
                 const firstCommander = s.commander?.[0];
                 if (firstCommander) {
                     setCurrentCard({ ...firstCommander, faces: [firstCommander.faces[0]] });
@@ -156,6 +172,7 @@ const DeckDetail: React.FC = () => {
         return () => { alive = false; };
     }, [id, role]);
 
+    // Construcción de secciones visibles (solo las que tienen cartas)
     const sections = useMemo(() => {
         const empty: { title: string; cards: CardInfoWithSigned[] }[] = [];
         if (!deckDataSigned) return empty;
@@ -172,11 +189,14 @@ const DeckDetail: React.FC = () => {
         ].filter((s) => s.cards && s.cards.length > 0);
     }, [deckDataSigned]);
 
+    // Hover / leave / click sobre cartas del listado
     const handleCardHover = (card: CardInfoWithSigned) => {
+        // Mostrar la carta (cara frontal) en el lateral
         setCurrentCard({ ...card, faces: [card.faces[0]] });
     };
 
     const handleCardLeave = () => {
+        // Volver a mostrar el comandante (si existe) al salir
         const commander = deckDataSigned?.commander?.[0];
         if (commander) {
             setCurrentCard({ ...commander, faces: [commander.faces[0]] });
@@ -184,6 +204,7 @@ const DeckDetail: React.FC = () => {
     };
 
     const handleCardClick = (card: CardInfoWithSigned) => {
+        // Abrir popup ampliado con la carta clicada (por defecto front face)
         setPopupCard(card);
         setPopupFaceIndex(0);
     };
@@ -193,6 +214,7 @@ const DeckDetail: React.FC = () => {
         setPopupFaceIndex(0);
     };
 
+    // Cambio de cara en listados: animación de flip si es la misma carta
     const handleFaceChange = (card: CardInfoWithSigned, activeFaceIndex: number) => {
         const activeFace = card.faces[activeFaceIndex];
         if (currentCard && currentCard.name === card.name && currentCard.faces[0] !== activeFace) {
@@ -205,6 +227,7 @@ const DeckDetail: React.FC = () => {
         }
     };
 
+    // Estados de carga / not found
     if (loading) {
         return (
             <div className="min-h-screen bg-background/95 text-foreground">
@@ -233,7 +256,7 @@ const DeckDetail: React.FC = () => {
         <div className="min-h-screen bg-background/95 text-foreground">
             <Navbar />
 
-            {/* Card Popup Modal */}
+            {/* Popup ampliado de carta */}
             {popupCard && (
                 <div
                     className="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -256,7 +279,7 @@ const DeckDetail: React.FC = () => {
                             <X className="w-5 h-5" />
                         </button>
 
-                        {/* Card image */}
+                        {/* Imagen de la carta */}
                         <div className="flex flex-col items-center gap-3 shrink-0">
                             <div
                                 className="rounded-xl shadow-2xl overflow-hidden"
@@ -292,7 +315,7 @@ const DeckDetail: React.FC = () => {
                             )}
                         </div>
 
-                        {/* Card info */}
+                        {/* Información de la carta */}
                         <div className="flex flex-col gap-4 flex-1 min-w-0 pt-1">
                             <div>
                                 <h2 className="text-3xl font-bold text-foreground leading-tight">{popupCard.name}</h2>
@@ -334,12 +357,13 @@ const DeckDetail: React.FC = () => {
             )}
 
             <main className="mx-auto px-4 py-6 w-full">
+                {/* Header del deck (imagen principal, título, autor, etc.) */}
                 <DeckHeader deck={deck} imageUrl={signedMainImage} />
 
                 <div className="grid lg:grid-cols-4 gap-6">
                     <div className="lg:col-span-1">
                         <div className="sticky top-20 mt-4 space-y-4">
-                            {/* Card Display Box */}
+                            {/* Caja lateral que muestra la carta seleccionada y control de compra */}
                             <div className="bg-secondary border-0 rounded-lg shadow-lg p-4 text-center">
                                 <div
                                     className="relative mx-auto w-full max-w-64 aspect-[5/7] rounded-lg overflow-hidden"
@@ -365,7 +389,7 @@ const DeckDetail: React.FC = () => {
                                 </div>
                             </div>
 
-                            {/* Purchase Section */}
+                            {/* Sección de compra con precio y botón */}
                             <div className="bg-card border border-border rounded-lg p-4 shadow-md flex items-center justify-between gap-4">
                                 <div className="flex flex-col">
                                     <span className="text-xs text-muted-foreground uppercase font-semibold">Total Price</span>
@@ -384,6 +408,7 @@ const DeckDetail: React.FC = () => {
                         </div>
                     </div>
 
+                    {/* Columnas con las listas de cartas (usa CardList para cada sección) */}
                     <div className="lg:col-span-3">
                         <div className="columns-1 sm:columns-2 lg:columns-3 gap-4">
                             {sections.map((section) => (

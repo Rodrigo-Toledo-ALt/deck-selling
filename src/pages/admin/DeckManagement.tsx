@@ -1,3 +1,7 @@
+// DeckManagement.tsx
+// Página admin para listar, crear, editar, ocultar y borrar mazos.
+// Comentarios breves en español para que se entienda rápido en el TFG.
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -15,20 +19,24 @@ type DeckRow = Deck & { imageUrl?: string; archetype?: string };
 const DeckManagement: React.FC = () => {
     const navigate = useNavigate();
     const { toast } = useToast();
+
+    // Lista de mazos con campos adicionales para la UI
     const [decks, setDecks] = useState<DeckRow[]>([]);
     const [loading, setLoading] = useState(true);
 
+    // Carga inicial: obtiene todos los mazos y firma la URL de la imagen principal
     useEffect(() => {
-        let alive = true;
+        let alive = true; // evita actualizar estado si el componente se desmonta
         (async () => {
             try {
                 setLoading(true);
-                const list = await getAllDecks(true);
+                const list = await getAllDecks(true); // obtiene datos desde Supabase
+                // Pedimos URLs firmadas en paralelo para mostrar thumbnails
                 const urls = await Promise.all(list.map(d => getSignedMainImageUrl(d, 3600)));
                 const rows: DeckRow[] = list.map((d, i) => ({
                     ...d,
                     imageUrl: urls[i] || '',
-                    archetype: 'Commander',
+                    archetype: 'Commander', // valor por defecto en la UI
                 }));
                 if (!alive) return;
                 setDecks(rows);
@@ -44,11 +52,12 @@ const DeckManagement: React.FC = () => {
 
     const handleEditDeck = (deckId: string) => navigate(`/admin/decks/edit/${deckId}`);
 
+    // Borrado con confirm y actualización local de la lista si tiene éxito
     const handleDeleteDeck = async (deckId: string) => {
         if (!window.confirm('Are you sure you want to delete this deck?')) return;
         try {
             await deleteDeck(deckId);
-            setDecks(prev => prev.filter(d => d.id !== deckId));
+            setDecks(prev => prev.filter(d => d.id !== deckId)); // remover localmente
             toast({ title: 'Deck deleted', description: 'The deck has been successfully deleted.' });
         } catch (e: any) {
             console.error('handleDeleteDeck error:', e);
@@ -62,6 +71,7 @@ const DeckManagement: React.FC = () => {
 
     const handleCreateDeck = () => navigate('/admin/decks/create');
 
+    // Toggle de visibilidad: llama al servicio y actualiza el estado local
     const handleToggleVisibility = async (deckId: string, currentVisibility: boolean) => {
         try {
             const nextVisibility = !currentVisibility;
@@ -109,6 +119,7 @@ const DeckManagement: React.FC = () => {
                             </TableHeader>
                             <TableBody>
                                 {loading ? (
+                                    // Esqueleto de carga para la tabla
                                     [...Array(6)].map((_, i) => (
                                         <TableRow key={i}>
                                             <TableCell><div className="w-16 h-12 bg-muted animate-pulse rounded" /></TableCell>
@@ -124,6 +135,7 @@ const DeckManagement: React.FC = () => {
                                     <TableRow key={deck.id}>
                                         <TableCell>
                                             {deck.imageUrl ? (
+                                                // Thumbnail con lazy loading
                                                 <img
                                                     src={deck.imageUrl}
                                                     alt={deck.name}
@@ -139,6 +151,7 @@ const DeckManagement: React.FC = () => {
                                         <TableCell>{deck.colors.join(', ')}</TableCell>
                                         <TableCell>€{deck.price}</TableCell>
                                         <TableCell>
+                                            {/* Botón que alterna visibilidad */}
                                             <Button
                                                 variant={deck.is_visible ? 'default' : 'secondary'}
                                                 size="sm"
@@ -151,6 +164,7 @@ const DeckManagement: React.FC = () => {
                                         </TableCell>
                                         <TableCell className="text-right">
                                             <div className="flex justify-end gap-2">
+                                                {/* Abrir vista pública, editar y borrar */}
                                                 <Button variant="outline" size="sm" onClick={() => navigate(`/deck/${deck.id}`)}>
                                                     <ExternalLink size={16} />
                                                 </Button>

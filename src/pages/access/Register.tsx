@@ -1,3 +1,8 @@
+// Register.tsx
+// Página de registro de usuarios. Usa react-hook-form + zod para validación,
+// un DayPicker popover para la fecha de nacimiento, y signUp del AuthProvider.
+// Comentarios concisos para fácil lectura en el TFG.
+
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -29,13 +34,16 @@ import { useAuth } from '@/supabase/AuthProvider.tsx';
 import { DayPicker } from 'react-day-picker';
 import 'react-day-picker/dist/style.css';
 
+// --- Esquema de validación (Zod)
+// - birthDate: debe ser una fecha, no futura, y el usuario debe tener al menos 18 años
+// - confirmPassword: validado con .refine para coincidir con password
 const registerSchema = z.object({
-    name: z.string().min(2, 'Name must be at least 2 characters'),
-    email: z.string().email('Please enter a valid email'),
-    password: z.string().min(6, 'Password must be at least 6 characters'),
-    confirmPassword: z.string().min(6, 'Password must be at least 6 characters'),
+    name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),
+    email: z.string().email('Introduce un email válido'),
+    password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
+    confirmPassword: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
     birthDate: z.date({
-        required_error: 'Birth date is required',
+        required_error: 'La fecha de nacimiento es obligatoria',
     })
         .refine((date) => {
             const birthDate = new Date(date);
@@ -43,28 +51,29 @@ const registerSchema = z.object({
             const age = today.getFullYear() - birthDate.getFullYear();
             const monthDiff = today.getMonth() - birthDate.getMonth();
 
-            // Check if the date is not in the future
+            // No puede ser una fecha futura
             if (birthDate > today) return false;
 
-            // Check if user is at least 18 years old
+            // Al menos 18 años (teniendo cuidado con mes/día)
             if (age < 18) return false;
             if (age === 18 && monthDiff < 0) return false;
             if (age === 18 && monthDiff === 0 && today.getDate() < birthDate.getDate()) return false;
 
             return true;
         }, {
-            message: "You must be at least 18 years old and birth date cannot be in the future"
+            message: "Debes tener al menos 18 años y la fecha no puede ser futura"
         })
 }).refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords do not match",
+    message: "Las contraseñas no coinciden",
     path: ["confirmPassword"],
 });
 
 type RegisterValues = z.infer<typeof registerSchema>;
 
+// Nombres de meses para el selector personalizado encima del DayPicker
 const monthNames = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
 ];
 
 const Register = () => {
@@ -73,6 +82,7 @@ const Register = () => {
     const { signUp } = useAuth();
     const [isLoading, setIsLoading] = React.useState(false);
 
+    // Configurar react-hook-form con el resolver de zod
     const form = useForm<RegisterValues>({
         resolver: zodResolver(registerSchema),
         defaultValues: {
@@ -84,32 +94,35 @@ const Register = () => {
         }
     });
 
+    // Handler de submit: llama a signUp y muestra mensajes toast.
+    // También envía metadatos mínimos (full_name, birthdate en formato ISO).
     const onSubmit = async (values: RegisterValues) => {
         setIsLoading(true);
         try {
             const metadata = {
                 full_name: values.name,
+                // Almacena la fecha como YYYY-MM-DD o null
                 birthdate: values.birthDate ? values.birthDate.toISOString().split('T')[0] : null
             };
 
             const res = await signUp(values.email, values.password, metadata);
-            console.log('signUp result:', res);
+            console.log('Resultado de signUp:', res);
 
             if (res.error) {
                 toast({
-                    title: 'Registration failed',
-                    description: res.error.message || 'Something went wrong',
+                    title: 'Registro fallido',
+                    description: res.error.message || 'Algo salió mal',
                     variant: 'destructive',
                 });
             } else {
                 toast({
-                    title: 'Registration successful',
+                    title: 'Registro exitoso',
                     description: 'Revisa tu email si se requiere verificación.',
                 });
-                navigate('/login');
+                navigate('/login'); // Redirige al login tras registro exitoso
             }
         } catch (err: any) {
-            toast({ title: 'Registration error', description: err?.message ?? String(err), variant: 'destructive' });
+            toast({ title: 'Error en registro', description: err?.message ?? String(err), variant: 'destructive' });
         } finally {
             setIsLoading(false);
         }
@@ -120,16 +133,18 @@ const Register = () => {
             <Navbar />
             <main className="flex-grow flex items-center justify-center py-12">
                 <div className="w-full max-w-md p-8 bg-card rounded-lg border border-border">
-                    <h1 className="text-3xl font-bold text-center mb-8 text-gradient">Create an Account</h1>
+                    <h1 className="text-3xl font-bold text-center mb-8 text-gradient">Crear una cuenta</h1>
 
+                    {/* Formulario conectado a react-hook-form */}
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                            {/* Campo de nombre */}
                             <FormField
                                 control={form.control}
                                 name="name"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>User name</FormLabel>
+                                        <FormLabel>Nombre de usuario</FormLabel>
                                         <FormControl>
                                             <Input placeholder="John Doe" {...field} />
                                         </FormControl>
@@ -138,6 +153,7 @@ const Register = () => {
                                 )}
                             />
 
+                            {/* Campo de email */}
                             <FormField
                                 control={form.control}
                                 name="email"
@@ -152,22 +168,26 @@ const Register = () => {
                                 )}
                             />
 
+                            {/* Campo de fecha de nacimiento con DayPicker dentro de un Popover.
+                                Notas:
+                                - field.value es una Date o undefined.
+                                - shownMonth es un estado local para mantener sincronizado el selector de mes.
+                                - fromDate/toDate limitan el rango seleccionable.
+                            */}
                             <FormField
                                 control={form.control}
                                 name="birthDate"
                                 render={({ field }) => {
-                                    // Estado local para controlar el mes mostrado en DayPicker
                                     const initialMonth = field.value ? new Date(field.value) : new Date();
                                     const [shownMonth, setShownMonth] = React.useState<Date>(initialMonth);
 
-                                    // Generar rango de años (ajusta si quieres otro)
                                     const currentYear = new Date().getFullYear();
                                     const years = [];
                                     for (let y = 1900; y <= currentYear; y++) years.push(y);
 
                                     return (
                                         <FormItem>
-                                            <FormLabel>Date of Birth</FormLabel>
+                                            <FormLabel>Fecha de nacimiento</FormLabel>
                                             <Popover>
                                                 <PopoverTrigger asChild>
                                                     <FormControl>
@@ -179,18 +199,20 @@ const Register = () => {
                                                             )}
                                                         >
                                                             {field.value ? (
-                                                                format(field.value, "PPP")
+                                                                format(field.value, "PPP") // Fecha legible
                                                             ) : (
-                                                                <span>Pick a date</span>
+                                                                <span>Selecciona una fecha</span>
                                                             )}
                                                             <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                                         </Button>
                                                     </FormControl>
                                                 </PopoverTrigger>
+
                                                 <PopoverContent className="w-auto p-3" align="start">
+                                                    {/* Selectores de mes/año para navegar rápidamente */}
                                                     <div className="flex gap-2 mb-2">
                                                         <select
-                                                            aria-label="Month"
+                                                            aria-label="Mes"
                                                             value={shownMonth.getMonth()}
                                                             onChange={(e) => {
                                                                 const m = Number(e.target.value);
@@ -204,7 +226,7 @@ const Register = () => {
                                                         </select>
 
                                                         <select
-                                                            aria-label="Year"
+                                                            aria-label="Año"
                                                             value={shownMonth.getFullYear()}
                                                             onChange={(e) => {
                                                                 const y = Number(e.target.value);
@@ -222,7 +244,7 @@ const Register = () => {
                                                         mode="single"
                                                         selected={field.value ?? undefined}
                                                         onSelect={(date) => {
-                                                            // date puede ser undefined si se deselecciona
+                                                            // onSelect puede recibir undefined; solo actualiza cuando hay fecha
                                                             if (date) field.onChange(date);
                                                         }}
                                                         month={shownMonth}
@@ -241,12 +263,13 @@ const Register = () => {
                                 }}
                             />
 
+                            {/* Campo de contraseña */}
                             <FormField
                                 control={form.control}
                                 name="password"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Password</FormLabel>
+                                        <FormLabel>Contraseña</FormLabel>
                                         <FormControl>
                                             <Input type="password" placeholder="******" {...field} />
                                         </FormControl>
@@ -255,12 +278,13 @@ const Register = () => {
                                 )}
                             />
 
+                            {/* Confirmar contraseña */}
                             <FormField
                                 control={form.control}
                                 name="confirmPassword"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Confirm Password</FormLabel>
+                                        <FormLabel>Confirmar contraseña</FormLabel>
                                         <FormControl>
                                             <Input type="password" placeholder="******" {...field} />
                                         </FormControl>
@@ -269,17 +293,18 @@ const Register = () => {
                                 )}
                             />
 
+                            {/* Botón de enviar */}
                             <Button type="submit" className="w-full" disabled={isLoading}>
-                                {isLoading ? 'Registering...' : 'Register'}
+                                {isLoading ? 'Registrando...' : 'Registrarse'}
                             </Button>
                         </form>
                     </Form>
 
                     <div className="mt-6 text-center text-sm">
                         <p className="text-muted-foreground">
-                            Already have an account?{" "}
+                            ¿Ya tienes una cuenta?{" "}
                             <Link to="/login" className="text-primary hover:underline">
-                                Login here
+                                Inicia sesión aquí
                             </Link>
                         </p>
                     </div>

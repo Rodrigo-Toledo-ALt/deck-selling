@@ -1,3 +1,6 @@
+// Catalog.tsx
+// Página de catálogo: muestra todos los decks, permite buscar y filtrar por color, y navegar al detalle.
+
 import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -9,8 +12,10 @@ import 'mana-font/css/mana.css';
 import { useNavigate } from 'react-router-dom';
 import { getAllDecks, getSignedMainImageUrl, Deck } from '@/data/decks_remote';
 
+// Opciones visibles en la UI
 const colorOptions = ['Any', 'White', 'Blue', 'Black', 'Red', 'Green', 'Colorless'];
 
+// Mapa de nombre -> código usado en los decks
 const colorMap: Record<string, string> = {
     White: 'W',
     Blue: 'U',
@@ -19,6 +24,7 @@ const colorMap: Record<string, string> = {
     Green: 'G',
 };
 
+// Icono visual para cada color (usa la librería de mana-font)
 const ColorIcon = ({ color, selected }: { color: string; selected: boolean }) => {
     const manaClasses: Record<string, string> = {
         White: 'ms ms-w ms-cost',
@@ -40,6 +46,7 @@ const ColorIcon = ({ color, selected }: { color: string; selected: boolean }) =>
 type DeckWithSigned = Deck & { imageUrl?: string };
 
 const Catalog = () => {
+    // Estado de filtros, datos originales y resultados filtrados
     const [selectedColors, setSelectedColors] = useState<string[]>(['Any']);
     const [originalDecks, setOriginalDecks] = useState<DeckWithSigned[]>([]);
     const [filteredDecks, setFilteredDecks] = useState<DeckWithSigned[]>([]);
@@ -47,6 +54,7 @@ const Catalog = () => {
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
 
+    // Al montar: cargar todos los decks y resolver URLs firmadas para las imágenes
     useEffect(() => {
         let alive = true;
         (async () => {
@@ -70,12 +78,15 @@ const Catalog = () => {
         return () => { alive = false; };
     }, []);
 
+    // Recalcula los resultados cuando cambian filtros, búsqueda o los datos originales
     useEffect(() => {
         let results = [...originalDecks];
 
+        // Filtrado por colores seleccionados (soporta Colorless y combinaciones)
         if (!selectedColors.includes('Any')) {
             results = results.filter((deck) => {
                 if (selectedColors.includes('Colorless')) {
+                    // Si se selecciona sólo Colorless, devolvemos decks sin colores
                     return selectedColors.length === 1 ? deck.colors.length === 0 : false;
                 }
                 return selectedColors.every((color) => {
@@ -85,6 +96,7 @@ const Catalog = () => {
             });
         }
 
+        // Búsqueda por nombre o descripción
         if (searchQuery) {
             const query = searchQuery.toLowerCase();
             results = results.filter(
@@ -102,6 +114,7 @@ const Catalog = () => {
         setSearchQuery('');
     };
 
+    // Lógica de selección/deselección de colores (Any actúa como "todo")
     const handleColorClick = (color: string) => {
         if (color === 'Any') {
             setSelectedColors(['Any']);

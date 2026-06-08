@@ -1,4 +1,9 @@
-// src/pages/admin/DeckForm.tsx
+// DeckForm.tsx
+// Formulario para crear/editar un mazo (admin).
+// - sube imágenes a Supabase
+// - prepara payload y llama a un webhook (n8n) que procesa el mazo (Scryfall, OCR, etc.)
+// Comentarios en español, concisos para el TFG.
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getDeckById, DeckData } from '@/data/decks_remote';
@@ -18,8 +23,7 @@ import { supabase } from '@/supabase/supabase-client.ts';
 import 'mana-font/css/mana.css';
 import Navbar from "@/components/Navbar.tsx";
 
-// ... (mantengo las funciones auxiliares originales sin cambios) ...
-
+// Extrae todas las rutas de imagen almacenadas en deckData (para limpieza en edición)
 function extractAllCardImagePaths(deckData: DeckData): string[] {
     const sections = [
         'commander', 'creatures', 'sorceries', 'instants',
@@ -39,6 +43,7 @@ function extractAllCardImagePaths(deckData: DeckData): string[] {
     return paths;
 }
 
+// Parsea un decklist en texto (formato "1x Sol Ring" y comentarios //section)
 function parseDecklistToItems(input: string): { name: string; quantity: number; section: string }[] {
     const lines = input.split(/\r?\n/);
     const cards: { name: string; quantity: number; section: string }[] = [];
@@ -61,6 +66,7 @@ function parseDecklistToItems(input: string): { name: string; quantity: number; 
     return cards;
 }
 
+// Convierte PNG a JPG usando canvas (para reducir compatibilidad/size)
 async function convertToJpg(file: File, quality = 0.8): Promise<File> {
     return new Promise((resolve, reject) => {
         const img = new Image();
@@ -80,10 +86,12 @@ async function convertToJpg(file: File, quality = 0.8): Promise<File> {
     });
 }
 
+// Sanitiza nombre de archivo para usar en rutas de almacenamiento
 function sanitizeFileName(name: string) {
     return name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9.\-_]/g, '_');
 }
 
+// Formatea bytes a texto legible
 function formatBytes(bytes: number, decimals = 2) {
     if (bytes === 0) return '0 Bytes';
     const k = 1024; const dm = decimals < 0 ? 0 : decimals;
@@ -92,6 +100,7 @@ function formatBytes(bytes: number, decimals = 2) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
 }
 
+// Opciones de colores (UI + mapeo a códigos)
 const colorOptions = ['White', 'Blue', 'Black', 'Red', 'Green', 'Colorless'] as const;
 const colorMap: Record<typeof colorOptions[number], 'W'|'U'|'B'|'R'|'G'|''> = {
     White: 'W', Blue: 'U', Black: 'B', Red: 'R', Green: 'G', Colorless: '',
@@ -107,6 +116,7 @@ const ColorIcon = ({ color, selected }: { color: typeof colorOptions[number]; se
     </div>
 );
 
+// Esquema Zod para validar el formulario (client-side)
 const deckSchema = z.object({
     name: z.string().min(3, 'Name must be at least 3 characters'),
     description: z.string().min(10, 'Description must be at least 10 characters'),
@@ -128,7 +138,7 @@ const deckSchema = z.object({
 
 type DeckFormValues = z.infer<typeof deckSchema>;
 
-/* ProcessingOverlay y constantes idénticas al archivo original */
+// Pasos de procesamiento mostrados en overlay (informativo)
 const PROCESSING_STEPS = [
     { label: 'Subiendo imágenes...', duration: 0 },
     { label: 'Enviando mazo a procesamiento...', duration: 8000 },
@@ -145,6 +155,7 @@ interface ProcessingOverlayProps {
     onDismissError: () => void;
 }
 
+// Overlay que muestra progreso/estado durante el procesamiento del mazo
 const ProcessingOverlay: React.FC<ProcessingOverlayProps> = ({ elapsedSeconds, error, onDismissError }) => {
     const currentStep = PROCESSING_STEPS.reduce((acc, step) =>
             elapsedSeconds * 1000 >= step.duration ? step : acc
@@ -159,6 +170,7 @@ const ProcessingOverlay: React.FC<ProcessingOverlayProps> = ({ elapsedSeconds, e
             <div className="flex flex-col items-center gap-8 p-10 rounded-2xl border border-border bg-card shadow-2xl max-w-md w-full mx-4">
                 {error ? (
                     <>
+                        {/* Estado de error: muestra mensaje y botón para cerrar */}
                         <div className="flex items-center justify-center w-20 h-20 rounded-full bg-destructive/10 border-2 border-destructive">
                             <i className="ms ms-ability-deathtouch ms-3x text-destructive" />
                         </div>
@@ -176,6 +188,7 @@ const ProcessingOverlay: React.FC<ProcessingOverlayProps> = ({ elapsedSeconds, e
                     </>
                 ) : (
                     <>
+                        {/* Estado procesando: animación, paso actual y barra */}
                         <div className="relative flex items-center justify-center">
                             <div className="w-24 h-24 rounded-full border-4 border-muted animate-spin border-t-primary" />
                             <div className="absolute">
@@ -227,6 +240,7 @@ const DeckForm: React.FC = () => {
     const { toast } = useToast();
     const { user, role, loading } = useAuth();
 
+    // react-hook-form con validación Zod
     const form = useForm<DeckFormValues>({
         resolver: zodResolver(deckSchema),
         defaultValues: {
@@ -235,19 +249,20 @@ const DeckForm: React.FC = () => {
         },
     });
 
+    // Valores observados del formulario
     const selectedCodes = form.watch('colorsCodes') || [];
     const colorless = form.watch('colorless');
 
+    // Estados de archivos / procesamiento / deck existente
     const [mainImage, setMainImage] = useState<File | null>(null);
     const [deckImages, setDeckImages] = useState<File[]>([]);
     const [isProcessing, setIsProcessing] = useState(false);
     const [processingError, setProcessingError] = useState<string | null>(null);
     const [elapsedSeconds, setElapsedSeconds] = useState(0);
     const [loadingDeck, setLoadingDeck] = useState(isEditMode);
-
-    // ✅ CAMBIO: guardamos el mazo existente para poder reutilizar sus imágenes
     const [existingDeck, setExistingDeck] = useState<DeckData | null>(null);
 
+    // Requiere rol admin: redirige si no tiene acceso
     useEffect(() => {
         if (!loading && role !== 'admin') {
             toast({ title: 'Acceso denegado', description: 'Debes ser administrador', variant: 'destructive' });
@@ -255,6 +270,7 @@ const DeckForm: React.FC = () => {
         }
     }, [loading, role, toast, navigate]);
 
+    // Si es edición, cargar el mazo y prellenar el formulario
     useEffect(() => {
         if (!isEditMode || !deckId) return;
         (async () => {
@@ -266,7 +282,6 @@ const DeckForm: React.FC = () => {
                     navigate('/admin/decks');
                     return;
                 }
-                // ✅ CAMBIO: guardamos el deck completo
                 setExistingDeck(deck);
 
                 const isColorless = deck.colors.length === 0;
@@ -286,6 +301,7 @@ const DeckForm: React.FC = () => {
         })();
     }, [deckId, isEditMode]);
 
+    // Cronómetro mientras se procesa (para overlay)
     useEffect(() => {
         if (!isProcessing || processingError) {
             if (!isProcessing) setElapsedSeconds(0);
@@ -295,6 +311,7 @@ const DeckForm: React.FC = () => {
         return () => clearInterval(interval);
     }, [isProcessing, processingError]);
 
+    // Maneja el click en los iconos de color (toggle)
     const handleColorClick = (color: typeof colorOptions[number]) => {
         if (color === 'Colorless') {
             form.setValue('colorless', true, { shouldValidate: true });
@@ -309,21 +326,20 @@ const DeckForm: React.FC = () => {
         form.setValue('colorsCodes', Array.from(cur) as any, { shouldValidate: true });
     };
 
-    // Helper: busca carta en existingDeck por sección y nombre (matching básico por nombre)
+    // Busca una carta existente por sección y nombre para intentar preservar 'faces'
     function findExistingCard(section: string, name: string) {
         if (!existingDeck) return undefined;
-        // existingDeck.deckData tiene la estructura de secciones tal como se usa en tu aplicación
         const list = (existingDeck as any).deckData?.[section] ?? [];
         return list.find((c: any) => c.name === name);
     }
 
+    // Submit: sube imágenes (si hay), prepara payload y llama al webhook n8n
     const onSubmit = async (values: DeckFormValues) => {
         try {
             setProcessingError(null);
             setIsProcessing(true);
 
-            // usamos existingDeck del estado (si existe)
-            // ── Imagen principal ──
+            // 1) Imagen principal: subir a Supabase (borrar anterior si edita)
             let mainImagePath = '';
             if (mainImage) {
                 if (existingDeck?.main_image_path) {
@@ -341,7 +357,7 @@ const DeckForm: React.FC = () => {
                 mainImagePath = existingDeck.main_image_path;
             }
 
-            // ── Imágenes del mazo (fotos de cartas) ──
+            // 2) Imágenes del mazo: subir y (si edita) borrar las anteriores en chunks
             const deckImagePaths: { originalName: string; path: string }[] = [];
             if (deckImages.length > 0) {
                 if (existingDeck) {
@@ -354,7 +370,6 @@ const DeckForm: React.FC = () => {
                     }
                 }
 
-                // ✅ CAMBIO: usar deckId (edición) o UUID nuevo (creación) como carpeta
                 const folderName = isEditMode && deckId ? deckId : crypto.randomUUID();
                 for (let i = 0; i < deckImages.length; i++) {
                     let file = deckImages[i];
@@ -369,20 +384,17 @@ const DeckForm: React.FC = () => {
                 }
             }
 
+            // 3) Procesar decklist y preparar payload
             const colorsCsv = values.colorless ? '' : (values.colorsCodes || []).join(',');
             const parsedCards = parseDecklistToItems(values.decklist);
 
-            // ✅ CAMBIO PRINCIPAL:
-            // Si estamos editando y NO se suben nuevas deckImages, añadimos al payload
-            // información del mazo existente para que el webhook/n8n pueda reutilizar las imágenes.
-            // Además construimos `existing_deck_cards` que hace matching por name+section y adjunta las faces/imágenes existentes.
             let existing_deck_json = undefined;
             let existing_deck_cards: any[] | undefined = undefined;
             if (isEditMode && deckId && existingDeck) {
                 existing_deck_json = existingDeck.deckData;
 
+                // Si no subieron nuevas fotos, intentamos preservar las 'faces' encontradas
                 if ((!deckImages || deckImages.length === 0)) {
-                    // Construimos un listado de cartas con sus images basadas en el deck existente
                     existing_deck_cards = parsedCards.map(pc => {
                         const found = findExistingCard(pc.section, pc.name);
                         return {
@@ -410,12 +422,11 @@ const DeckForm: React.FC = () => {
                 ...(isEditMode ? { deckId: deckId } : { is_visible: false }),
             };
 
-            // añadimos sólo si existen (no forzamos nulls)
             if (existing_deck_json) payload.existing_deck_json = existing_deck_json;
             if (existing_deck_cards) payload.existing_deck_cards = existing_deck_cards;
-            // también añadimos una bandera por si quieres que n8n haga lógica condicional
-            if (existing_deck_cards) payload.preserve_card_images = true;
+            if (existing_deck_cards) payload.preserve_card_images = true; // bandera para el flujo n8n
 
+            // 4) Llamada al webhook (n8n) con token del usuario admin (si existe)
             const { data: sessionData } = await supabase.auth.getSession();
             const token = sessionData.session?.access_token;
 
@@ -430,6 +441,7 @@ const DeckForm: React.FC = () => {
 
             if (!res.ok) throw new Error(`Error en webhook: ${res.status}`);
 
+            // Done: feedback y redirección
             setIsProcessing(false);
             toast({
                 title: isEditMode ? 'Mazo actualizado ✓' : 'Mazo creado ✓',
@@ -440,6 +452,7 @@ const DeckForm: React.FC = () => {
             navigate('/admin/decks');
         } catch (err: any) {
             console.error('Error en onSubmit:', err);
+            // Guardar mensaje para mostrar en overlay de error
             setProcessingError(err?.message ?? 'Error desconocido al guardar.');
         }
     };
@@ -449,6 +462,7 @@ const DeckForm: React.FC = () => {
         setProcessingError(null);
     };
 
+    // Maneja selección múltiple de imágenes del mazo
     const handleDeckImagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
         setDeckImages(files.filter((f) => f.type.startsWith('image/')));

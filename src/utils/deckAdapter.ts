@@ -1,4 +1,5 @@
-// Adapter para convertir datos de la base de datos al formato esperado por DeckDetailCF
+// deckDataAdapter.ts
+// Adaptador para transformar datos de Supabase al formato interno de las vistas de decks.
 
 interface DatabaseProduct {
   id: string;
@@ -57,7 +58,7 @@ const getCardImagePlaceholder = (cardType: string, cardName: string): string => 
     lands: "https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=400&h=500&fit=crop",
     sideboard: "https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=400&h=500&fit=crop"
   };
-  
+
   return imageMap[cardType] || imageMap.creatures;
 };
 
@@ -80,9 +81,9 @@ export const adaptDatabaseToDeckData = (product: DatabaseProduct): DeckData => {
   // Parsear el JSON si es string
   let deckCards;
   try {
-    deckCards = typeof product.deck_cards === 'string' 
-      ? JSON.parse(product.deck_cards) 
-      : product.deck_cards;
+    deckCards = typeof product.deck_cards === 'string'
+        ? JSON.parse(product.deck_cards)
+        : product.deck_cards;
   } catch (error) {
     console.error('Error parsing deck_cards JSON:', error);
     return {
@@ -100,7 +101,7 @@ export const adaptDatabaseToDeckData = (product: DatabaseProduct): DeckData => {
   // Función helper para convertir array de cartas
   const convertCardArray = (cards: any[], cardType: string): CardItem[] => {
     if (!Array.isArray(cards)) return [];
-    
+
     return cards.map(card => ({
       name: card.name || 'Unknown Card',
       quantity: card.quantity || 1,
@@ -126,7 +127,7 @@ export const getCommanderImage = (deckData: DeckData): string => {
   if (deckData.commander.length > 0) {
     return deckData.commander[0].image;
   }
-  
+
   // Fallback a la primera carta disponible
   const allCards = [
     ...deckData.planeswalkers,
@@ -135,10 +136,10 @@ export const getCommanderImage = (deckData: DeckData): string => {
     ...deckData.instants,
     ...deckData.artifacts
   ];
-  
-  return allCards.length > 0 
-    ? allCards[0].image 
-    : getCardImagePlaceholder('commander', 'Default');
+
+  return allCards.length > 0
+      ? allCards[0].image
+      : getCardImagePlaceholder('commander', 'Default');
 };
 
 // Función para calcular el total de cartas
@@ -152,7 +153,7 @@ export const getTotalCardCount = (deckData: DeckData): number => {
     deckData.artifacts,
     deckData.lands
   ];
-  
+
   return categories.reduce((total, category) => {
     return total + category.reduce((categoryTotal, card) => categoryTotal + card.quantity, 0);
   }, 0);

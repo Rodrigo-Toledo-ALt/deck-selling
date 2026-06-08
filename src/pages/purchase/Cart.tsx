@@ -1,4 +1,8 @@
-// src/pages/Cart.tsx
+// Cart.tsx
+// - gestiona carrito local (localStorage) para usuarios anónimos
+// - gestiona carrito remoto (Supabase) para usuarios autenticados
+// - resuelve URLs firmadas para thumbnails, calcula subtotal y maneja checkout vía n8n
+
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
@@ -27,6 +31,8 @@ type LocalCartItem = {
 
 const LOCAL_CART_KEY = 'cart_items_v1';
 
+// Helpers sencillos para persistencia local (localStorage)
+// - loadLocalCart / saveLocalCart / removeLocalItem / clearLocalCart / updateLocalQty
 function loadLocalCart(): LocalCartItem[] {
     try {
         const raw = localStorage.getItem(LOCAL_CART_KEY);
@@ -56,6 +62,7 @@ const Cart: React.FC = () => {
     const isAuthed = Boolean(user?.id);
     const navigate = useNavigate();
 
+    // Estado: items remotos vs locales, flags de carga y errores, cache de URLs firmadas
     const [remoteItems, setRemoteItems] = useState<RemoteCartItem[]>([]);
     const [localItems, setLocalItems] = useState<LocalCartItem[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
@@ -63,6 +70,8 @@ const Cart: React.FC = () => {
     const [checkoutError, setCheckoutError] = useState<string | null>(null);
     const [resolvedUrls, setResolvedUrls] = useState<Record<string, string>>({});
 
+    // Carga inicial del carrito según estado de autenticación.
+    // Usa bandera `cancelled` para evitar actualizar estado tras un unmount.
     useEffect(() => {
         let cancelled = false;
         (async () => {
@@ -84,6 +93,8 @@ const Cart: React.FC = () => {
         return () => { cancelled = true; };
     }, [isAuthed]);
 
+    // Cuando hay carrito remoto, resolvemos URLs firmadas para las miniaturas.
+    // Guardamos en `resolvedUrls` por id de item.
     useEffect(() => {
         if (!isAuthed || remoteItems.length === 0) {
             setResolvedUrls({});
@@ -107,6 +118,7 @@ const Cart: React.FC = () => {
         return () => { cancelled = true; };
     }, [isAuthed, remoteItems]);
 
+    // Cálculo del subtotal (memoizado)
     const subtotal = useMemo(() => {
         if (isAuthed) {
             return remoteItems.reduce((sum, it) => {
@@ -118,7 +130,9 @@ const Cart: React.FC = () => {
         }
     }, [isAuthed, remoteItems, localItems]);
 
-    // Acciones carrito AUTENTICADO
+    // ----- Acciones para carrito autenticado -----
+    // Incrementar / decrementar / remover / limpiar en remoto.
+    // Después de cada operación recargamos el carrito y emitimos evento 'cartUpdated'.
     const incRemote = async (itemId: string) => {
         const item = remoteItems.find((i) => i.id === itemId);
         if (!item) return;
@@ -147,7 +161,9 @@ const Cart: React.FC = () => {
         window.dispatchEvent(new Event('cartUpdated'));
     };
 
-    // Checkout con Stripe via n8n
+    // ----- Checkout -----
+    // Llama a un webhook n8n que crea el payment intent; se envía el token de sesión.
+    // Navega a /checkout con clientSecret y orderId.
     const checkout = async () => {
         try {
             setCheckoutLoading(true);
@@ -180,7 +196,8 @@ const Cart: React.FC = () => {
         }
     };
 
-    // Acciones carrito ANÓNIMO
+    // ----- Acciones para carrito anónimo (local) -----
+    // Actualizan localStorage y el estado local; emiten 'cartUpdated'.
     const incLocal = (id: string) => {
         const item = localItems.find((i) => i.id === id);
         if (!item) return;
@@ -211,6 +228,7 @@ const Cart: React.FC = () => {
         window.dispatchEvent(new Event('cartUpdated'));
     };
 
+    // Helper UI: render miniatura para item remoto (usa resolvedUrls) o fallback
     const renderRemoteThumb = (it: RemoteCartItem) => {
         const url = resolvedUrls[it.id];
         return url ? (
@@ -222,6 +240,7 @@ const Cart: React.FC = () => {
         );
     };
 
+    // Helper UI para item local (puede traer imageUrl)
     const renderLocalThumb = (it: LocalCartItem) => {
         return it.imageUrl ? (
             <img src={it.imageUrl} alt={it.name} className="w-full h-full object-cover" />
@@ -232,6 +251,7 @@ const Cart: React.FC = () => {
         );
     };
 
+    // ----- Render -----
     return (
         <div className="flex flex-col min-h-screen">
             <Navbar />

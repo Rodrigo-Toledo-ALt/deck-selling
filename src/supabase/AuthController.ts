@@ -1,7 +1,11 @@
-// src/supabase/AuthController.ts
+// AuthController.ts
+// Funciones auxiliares de autenticación: signUp, signIn, signOut y createUserIfNotExists.
+// Se encargan de interactuar con Supabase Auth y mantener sincronizada la tabla `users`.
+
 import { supabase } from './supabase-client.ts'
 import type { User } from '@supabase/supabase-js'
 
+// Registro de nuevo usuario (email/password)
 export async function signUp(email: string, password: string, metadata: Record<string, any> = {}) {
     const result = await supabase.auth.signUp({
         email,
@@ -11,53 +15,55 @@ export async function signUp(email: string, password: string, metadata: Record<s
         }
     })
 
-    // Si la llamada devolvió error, lo devolvemos tal cual
+    // Devuelve error si lo hay (ej: email ocupado)
     if (result.error) return result
 
-    // Si hay usuario y además hay sesión (usuario ya autenticado en cliente),
-    // intentamos crear la fila en la tabla `users`.
+    // Si el registro fue exitoso y el usuario ya está logueado (sesión activa),
+    // creamos su entrada en la tabla `users` para tener su perfil en la app
     const user = result.data?.user ?? null
     const session = result.data?.session ?? null
 
     if (user && session?.user) {
         try {
-            // Importa o usa la función createUserIfNotExists que ya tienes en este módulo
+            // Crear registro en tabla `users` si no existe
             await createUserIfNotExists({
                 id: user.id,
                 email: user.email,
                 user_metadata: user.user_metadata
             })
         } catch (err) {
-            // No interrumpimos el flujo del signup por este fallo,
-            // pero lo registramos para que puedas debuggear.
+            // Fallo al crear usuario no debe impedir el registro
             console.error('createUserIfNotExists after signUp error', err)
         }
     } else {
-        // Nota: si no hay session (p. ej. verificación por email pendiente), no intentamos insertar.
-        // La inserción se realizará cuando haya sesión (onAuthStateChange en AuthProvider).
+        // Usuario registrado pero sin sesión (verificación pendiente): se creará más tarde
     }
 
     return result
 }
 
+// Login con email/password
 export async function signIn(email: string, password: string) {
     return supabase.auth.signInWithPassword({ email, password })
 }
 
+// Login mediante link mágico (enviado por email)
 export async function signInWithMagicLink(email: string) {
     return supabase.auth.signInWithOtp({ email })
 }
 
+// Login mediante proveedor externo (OAuth)
 export async function signInWithProvider(provider: 'github' | 'google' | 'azure' | 'facebook') {
     return supabase.auth.signInWithOAuth({ provider })
 }
 
+// Logout: cierra sesión en Supabase
 export async function signOut() {
     return supabase.auth.signOut()
 }
 
 /**
- * Crea la fila users si no existe. Llamar solo cuando exista session.user
+ * Crea la fila en la tabla `users` si no existe. Solo llamar cuando hay sesión activa.
  */
 export async function createUserIfNotExists(user: { id: string; email?: string | null; user_metadata?: any }) {
     console.log('⚡ createUserIfNotExists called with user:', user);
@@ -67,7 +73,7 @@ export async function createUserIfNotExists(user: { id: string; email?: string |
         return { created: false, error: 'no-auth-user' };
     }
 
-    // --- SELECT para comprobar si ya existe ---
+    // Comprobación de existencia para evitar duplicados
     console.log("➡️ Checking if user exists:", user.id);
     const { data: existing, error: selErr } = await supabase
         .from('users')
@@ -86,15 +92,16 @@ export async function createUserIfNotExists(user: { id: string; email?: string |
         return { created: false, data: existing };
     }
 
-    // --- INSERT solo si no existía ---
+    // Preparar datos para insertar (valores por defecto + metadatos)
     const payload = {
         id: user.id,
         username: user.user_metadata?.full_name ?? null,
-        role: 'customer',   // 👈 rol por defecto
+        role: 'customer',   // Rol predeterminado para nuevos usuarios
         email: user.email ?? null,
         birthdate: user.user_metadata?.birthdate ?? null
     };
 
+    // Insertar nuevo usuario en la tabla `users`
     console.log('➡️ Inserting new user with payload:', payload);
     const { data: created, error: insErr } = await supabase
         .from('users')

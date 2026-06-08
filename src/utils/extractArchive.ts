@@ -1,8 +1,10 @@
-// utils/extractArchive.ts
+// extractArchive.ts
+// Utilidad para extraer archivos de un .zip/.rar y convertir PNGs a JPGs para optimizar peso.
+
 import JSZip from "jszip";
 import { createExtractorFromFile } from "unrar.js";
 
-// Reusamos tu convertToJpg (lo muevo aquí también)
+// Convierte imágenes PNG a JPG (reduce tamaño y compatibilidad)
 export async function convertToJpg(file: File, quality = 0.8): Promise<File> {
     return new Promise((resolve, reject) => {
         const img = new Image();
@@ -33,6 +35,7 @@ export async function convertToJpg(file: File, quality = 0.8): Promise<File> {
     });
 }
 
+// Extrae archivos de un .zip o .rar, convirtiendo PNGs a JPGs en el proceso
 export async function extractArchive(file: File): Promise<File[]> {
     const ext = file.name.split('.').pop()?.toLowerCase();
 

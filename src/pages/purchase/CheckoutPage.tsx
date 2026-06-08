@@ -1,8 +1,13 @@
-import { useEffect, useState } from 'react';
+// CheckoutPage.tsx
+// Página de checkout (pasos):
+// 1) Selección/creación y confirmación de dirección de envío
+// 2) Pago con Stripe (Elements + CheckoutForm)
+
+import React, { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Elements } from '@stripe/react-stripe-js';
 import { stripePromise } from '@/lib/stripe';
 import CheckoutForm from '@/components/CheckoutForm';
-import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '@/supabase/supabase-client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,15 +26,19 @@ import {
 const CheckoutPage = () => {
     const location = useLocation();
     const navigate = useNavigate();
+
+    // clientSecret y orderId vienen del paso anterior (webhook n8n -> /checkout)
     const { clientSecret, orderId } = location.state || {};
     console.log('location.state completo:', location.state);
 
+    // Direcciónes del usuario y selección
     const [addresses, setAddresses] = useState<MyAddress[]>([]);
     const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
     const [loadingAddresses, setLoadingAddresses] = useState(true);
     const [savingAddress, setSavingAddress] = useState(false);
-    const [addressConfirmed, setAddressConfirmed] = useState(false);
+    const [addressConfirmed, setAddressConfirmed] = useState(false); // flag para pasar al paso pago
 
+    // Dialog y formulario para añadir nueva dirección
     const [addrDialogOpen, setAddrDialogOpen] = useState(false);
     const [addrForm, setAddrForm] = useState<Omit<MyAddress, 'id' | 'is_default'>>({
         full_name: '',
@@ -40,12 +49,14 @@ const CheckoutPage = () => {
         country: '',
     });
 
+    // Recarga direcciones desde el servicio y selecciona si hay una única dirección
     const reloadAddresses = async () => {
         const addrs = await getMyAddresses();
         setAddresses(addrs);
         if (addrs.length === 1) setSelectedAddressId(addrs[0].id);
     };
 
+    // Al montar, cargar direcciones y seleccionar la por defecto si existe
     useEffect(() => {
         const fetchAddresses = async () => {
             const addrs = await getMyAddresses();
@@ -58,11 +69,13 @@ const CheckoutPage = () => {
         fetchAddresses();
     }, []);
 
+    // Abrir dialog para añadir dirección (resetea el formulario)
     const openAddAddress = () => {
         setAddrForm({ full_name: '', address: '', city: '', state: '', postal_code: '', country: '' });
         setAddrDialogOpen(true);
     };
 
+    // Enviar nueva dirección al backend (createMyAddress) y recargar lista
     const submitAddress = async () => {
         const ok = await createMyAddress(addrForm);
         if (ok) {
@@ -71,6 +84,8 @@ const CheckoutPage = () => {
         }
     };
 
+    // Confirmar dirección seleccionada para la orden:
+    // guarda shipping_address_id en la tabla orders y activa el paso de pago
     const handleConfirmAddress = async () => {
         if (!selectedAddressId || !orderId) return;
         setSavingAddress(true);
@@ -88,6 +103,7 @@ const CheckoutPage = () => {
         setAddressConfirmed(true);
     };
 
+    // Si no hay clientSecret (flujo roto), mostrar mensaje de error simple
     if (!clientSecret) return (
         <div className="flex flex-col min-h-screen">
             <Navbar />
@@ -105,7 +121,7 @@ const CheckoutPage = () => {
                 <div className="max-w-2xl mx-auto p-6 space-y-6">
                     <h1 className="text-2xl font-bold">Checkout</h1>
 
-                    {/* PASO 1: Dirección de envío */}
+                    {/* PASO 1: Selección / creación de dirección */}
                     <Card>
                         <CardHeader>
                             <CardTitle>Shipping address</CardTitle>
@@ -120,6 +136,7 @@ const CheckoutPage = () => {
                                             You have no saved addresses. Add one to continue.
                                         </p>
                                     ) : (
+                                        // Lista de direcciones; se puede seleccionar salvo que ya esté confirmada
                                         <ul className="space-y-2">
                                             {addresses.map(a => (
                                                 <li
@@ -154,12 +171,14 @@ const CheckoutPage = () => {
                                         </ul>
                                     )}
 
+                                    {/* Botón para añadir nueva dirección (abre dialog) */}
                                     {!addressConfirmed && (
                                         <Button variant="outline" onClick={openAddAddress} className="w-full">
                                             <Plus className="w-4 h-4 mr-1" /> Add new address
                                         </Button>
                                     )}
 
+                                    {/* Confirmar dirección seleccionada o mostrar estado confirmado */}
                                     {!addressConfirmed ? (
                                         <Button
                                             onClick={handleConfirmAddress}
@@ -181,13 +200,14 @@ const CheckoutPage = () => {
                         </CardContent>
                     </Card>
 
-                    {/* PASO 2: Pago */}
+                    {/* PASO 2: Pago — se muestra solo cuando la dirección está confirmada */}
                     {addressConfirmed && (
                         <Card>
                             <CardHeader>
                                 <CardTitle>Payment</CardTitle>
                             </CardHeader>
                             <CardContent>
+                                {/* Stripe Elements: recibe clientSecret y renderiza CheckoutForm */}
                                 <Elements stripe={stripePromise} options={{ clientSecret }}>
                                     <CheckoutForm orderId={orderId} />
                                 </Elements>
@@ -195,7 +215,7 @@ const CheckoutPage = () => {
                         </Card>
                     )}
 
-                    {/* Dialog nueva dirección */}
+                    {/* Dialog para añadir nueva dirección (validación básica en el botón Add) */}
                     <Dialog open={addrDialogOpen} onOpenChange={setAddrDialogOpen}>
                         <DialogContent>
                             <DialogHeader>

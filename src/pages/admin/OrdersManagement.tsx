@@ -1,4 +1,10 @@
-// src/pages/admin/OrdersManagement.tsx
+// OrdersManagement.tsx
+// Página admin para listar y buscar pedidos.
+// - carga pedidos desde Supabase
+// - búsqueda cliente/ID/estado
+// - navegación al detalle de un pedido
+// Comentarios concisos en español para el TFG.
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -23,6 +29,7 @@ export interface Order {
     users?: { username: string; email: string };
 }
 
+// Mapeo simple para variantes visuales de Badge según el estado
 const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
     paid: 'default',
     pending: 'secondary',
@@ -33,10 +40,13 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'o
 const OrdersManagement: React.FC = () => {
     const { toast } = useToast();
     const navigate = useNavigate();
+
+    // Estados: lista, carga y texto de búsqueda
     const [loading, setLoading] = useState(false);
     const [orders, setOrders] = useState<Order[]>([]);
     const [query, setQuery] = useState('');
 
+    // Efecto inicial: obtener pedidos (ordenados por fecha desc)
     useEffect(() => {
         (async () => {
             try {
@@ -57,6 +67,7 @@ const OrdersManagement: React.FC = () => {
         })();
     }, []);
 
+    // Filtrado en memoria según query (ID, status, stripe_status, email, username)
     const filtered = orders.filter(o => {
         const q = query.toLowerCase().trim();
         if (!q) return true;
@@ -71,84 +82,93 @@ const OrdersManagement: React.FC = () => {
 
     return (
         <div className="flex flex-col min-h-screen">
-        <Navbar />
-        <AdminLayout>
-            <div className="p-4 md:p-6 space-y-4">
-                <Card>
-                    <CardHeader className="flex items-center justify-between">
-                        <CardTitle>Orders</CardTitle>
-                        <div className="flex items-center gap-2 w-full md:w-96">
-                            <Search className="h-4 w-4 text-muted-foreground" />
-                            <Input
-                                placeholder="Search by ID, email, status..."
-                                value={query}
-                                onChange={(e) => setQuery(e.target.value)}
-                            />
-                        </div>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="overflow-x-auto">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Order ID</TableHead>
-                                        <TableHead>Customer</TableHead>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead>Stripe</TableHead>
-                                        <TableHead>Total</TableHead>
-                                        <TableHead>Date</TableHead>
-                                        <TableHead className="text-right">Actions</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {loading ? (
+            <Navbar />
+            <AdminLayout>
+                <div className="p-4 md:p-6 space-y-4">
+                    <Card>
+                        {/* Cabecera con buscador */}
+                        <CardHeader className="flex items-center justify-between">
+                            <CardTitle>Orders</CardTitle>
+                            <div className="flex items-center gap-2 w-full md:w-96">
+                                <Search className="h-4 w-4 text-muted-foreground" />
+                                <Input
+                                    placeholder="Search by ID, email, status..."
+                                    value={query}
+                                    onChange={(e) => setQuery(e.target.value)} // actualiza filtro
+                                />
+                            </div>
+                        </CardHeader>
+
+                        <CardContent>
+                            <div className="overflow-x-auto">
+                                <Table>
+                                    <TableHeader>
                                         <TableRow>
-                                            <TableCell colSpan={7} className="text-center py-8">Loading...</TableCell>
+                                            <TableHead>Order ID</TableHead>
+                                            <TableHead>Customer</TableHead>
+                                            <TableHead>Status</TableHead>
+                                            <TableHead>Stripe</TableHead>
+                                            <TableHead>Total</TableHead>
+                                            <TableHead>Date</TableHead>
+                                            <TableHead className="text-right">Actions</TableHead>
                                         </TableRow>
-                                    ) : filtered.length === 0 ? (
-                                        <TableRow>
-                                            <TableCell colSpan={7} className="text-center py-8">No orders found</TableCell>
-                                        </TableRow>
-                                    ) : (
-                                        filtered.map(o => (
-                                            <TableRow key={o.id}>
-                                                <TableCell className="font-mono text-xs">{o.id.slice(0, 8)}...</TableCell>
-                                                <TableCell>
-                                                    <div className="flex flex-col">
-                                                        <span className="font-medium">{o.users?.username ?? '-'}</span>
-                                                        <span className="text-xs text-muted-foreground">{o.users?.email ?? '-'}</span>
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Badge variant={statusVariant[o.status ?? ''] ?? 'secondary'}>
-                                                        {o.status ?? 'unknown'}
-                                                    </Badge>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Badge variant={statusVariant[o.stripe_status ?? ''] ?? 'outline'}>
-                                                        {o.stripe_status ?? '-'}
-                                                    </Badge>
-                                                </TableCell>
-                                                <TableCell>€{Number(o.total_amount).toFixed(2)}</TableCell>
-                                                <TableCell>
-                                                    {o.order_date ? new Date(o.order_date).toLocaleDateString() : '-'}
-                                                </TableCell>
-                                                <TableCell className="text-right">
-                                                    <Button size="sm" variant="outline" onClick={() => navigate(`/admin/orders/${o.id}`)}>
-                                                        View
-                                                    </Button>
-                                                </TableCell>
+                                    </TableHeader>
+
+                                    <TableBody>
+                                        {loading ? (
+                                            // Estado de carga
+                                            <TableRow>
+                                                <TableCell colSpan={7} className="text-center py-8">Loading...</TableCell>
                                             </TableRow>
-                                        ))
-                                    )}
-                                </TableBody>
-                            </Table>
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
-        </AdminLayout>
-    </div>
+                                        ) : filtered.length === 0 ? (
+                                            // Sin resultados
+                                            <TableRow>
+                                                <TableCell colSpan={7} className="text-center py-8">No orders found</TableCell>
+                                            </TableRow>
+                                        ) : (
+                                            // Filas de pedidos
+                                            filtered.map(o => (
+                                                <TableRow key={o.id}>
+                                                    <TableCell className="font-mono text-xs">{o.id.slice(0, 8)}...</TableCell>
+                                                    <TableCell>
+                                                        <div className="flex flex-col">
+                                                            <span className="font-medium">{o.users?.username ?? '-'}</span>
+                                                            <span className="text-xs text-muted-foreground">{o.users?.email ?? '-'}</span>
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        {/* Badge para estado del pedido */}
+                                                        <Badge variant={statusVariant[o.status ?? ''] ?? 'secondary'}>
+                                                            {o.status ?? 'unknown'}
+                                                        </Badge>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        {/* Badge para estado de Stripe */}
+                                                        <Badge variant={statusVariant[o.stripe_status ?? ''] ?? 'outline'}>
+                                                            {o.stripe_status ?? '-'}
+                                                        </Badge>
+                                                    </TableCell>
+                                                    <TableCell>€{Number(o.total_amount).toFixed(2)}</TableCell>
+                                                    <TableCell>
+                                                        {o.order_date ? new Date(o.order_date).toLocaleDateString() : '-'}
+                                                    </TableCell>
+                                                    <TableCell className="text-right">
+                                                        {/* Navegar al detalle del pedido */}
+                                                        <Button size="sm" variant="outline" onClick={() => navigate(`/admin/orders/${o.id}`)}>
+                                                            View
+                                                        </Button>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            </AdminLayout>
+        </div>
     );
 };
 

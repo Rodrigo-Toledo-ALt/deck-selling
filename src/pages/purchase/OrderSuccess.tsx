@@ -30,7 +30,7 @@ interface OrderDetail {
 const OrderSuccess = () => {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
-    const orderId = searchParams.get('orderId');
+    const orderId = searchParams.get('orderId'); // id recibida por query string
 
     const [order, setOrder] = useState<OrderDetail | null>(null);
     const [loading, setLoading] = useState(true);
@@ -40,6 +40,7 @@ const OrderSuccess = () => {
         const fetchOrder = async () => {
             if (!orderId) { setError(true); setLoading(false); return; }
 
+            // Consulta a supabase para traer la orden, su dirección y sus items en una sola llamada
             const { data, error } = await supabase
                 .from('orders')
                 .select(`
@@ -89,6 +90,7 @@ const OrderSuccess = () => {
             <main className="flex-grow">
                 <div className="max-w-2xl mx-auto p-6 space-y-6">
                     <div className="flex flex-col items-center text-center space-y-2 py-4">
+                        {/* Icono/confirmación visual */}
                         <CheckCircle2 className="w-16 h-16 text-green-500" />
                         <h1 className="text-2xl font-bold">Order confirmed!</h1>
                         <p className="text-muted-foreground">
@@ -96,6 +98,7 @@ const OrderSuccess = () => {
                         </p>
                     </div>
 
+                    {/* Resumen de los items */}
                     <Card>
                         <CardHeader><CardTitle>Order summary</CardTitle></CardHeader>
                         <CardContent className="space-y-3">
@@ -115,6 +118,7 @@ const OrderSuccess = () => {
                         </CardContent>
                     </Card>
 
+                    {/* Dirección de envío (si existe) */}
                     {order.shipping_address && (
                         <Card>
                             <CardHeader><CardTitle>Shipping to</CardTitle></CardHeader>
@@ -128,6 +132,7 @@ const OrderSuccess = () => {
                         </Card>
                     )}
 
+                    {/* Fecha y estado */}
                     <Card>
                         <CardContent className="pt-4 text-sm flex justify-between text-muted-foreground">
                             <span>Date: {new Date(order.order_date).toLocaleDateString('es-ES')}</span>
@@ -135,6 +140,7 @@ const OrderSuccess = () => {
                         </CardContent>
                     </Card>
 
+                    {/* Acciones rápidas */}
                     <div className="flex gap-3">
                         <Button variant="outline" className="flex-1" onClick={() => navigate('/account')}>
                             My account
