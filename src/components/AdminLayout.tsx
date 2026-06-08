@@ -1,7 +1,8 @@
+// src/components/AdminLayout.tsx
 import React, { ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import {LogOut, Package, ShoppingBag, Users} from 'lucide-react';
+import { LogOut, Package, ShoppingBag, Users, MessageSquare } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 
 interface AdminLayoutProps {
@@ -25,11 +26,12 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
         navigate('/login');
     };
 
-    // Menú actualizado: quitamos Dashboard y Settings, añadimos Clients
+    // Menú actualizado: añadimos Support
     const adminMenuItems = [
         { path: '/admin/decks', label: 'Decks', icon: <Package size={18} /> },
         { path: '/admin/clients', label: 'Clients', icon: <Users size={18} /> },
         { path: '/admin/orders', label: 'Orders', icon: <ShoppingBag size={18} /> },
+        { path: '/admin/support', label: 'Support', icon: <MessageSquare size={18} /> },
     ];
 
     return (
@@ -50,7 +52,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
                                 <Link
                                     to={item.path}
                                     className={`flex items-center px-4 py-3 rounded-md transition-colors ${
-                                        location.pathname === item.path
+                                        location.pathname.startsWith(item.path)
                                             ? 'bg-primary/10 text-primary'
                                             : 'hover:bg-secondary/50 text-foreground'
                                     }`}
@@ -64,6 +66,9 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
                 </nav>
 
                 <div className="p-4 border-t border-border">
+                    <Button variant="outline" size="sm" onClick={handleLogout} className="w-full">
+                        <LogOut size={16} /> Logout
+                    </Button>
                 </div>
             </aside>
 
@@ -85,7 +90,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
                                 key={item.path}
                                 to={item.path}
                                 className={`flex-shrink-0 px-3 py-2 rounded-md text-sm ${
-                                    location.pathname === item.path
+                                    location.pathname.startsWith(item.path)
                                         ? 'bg-primary/10 text-primary'
                                         : 'text-foreground'
                                 }`}

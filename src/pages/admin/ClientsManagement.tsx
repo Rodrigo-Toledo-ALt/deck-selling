@@ -1,4 +1,3 @@
-// src/pages/admin/ClientsManagement.tsx
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -8,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
 import { Search } from 'lucide-react';
-import { getAllClients, Client } from '@/data/users_remote';
+import { getAllClients, Client, toggleUserStatus } from '@/data/users_remote';
 import Navbar from "@/components/Navbar.tsx";
 import AdminLayout from "@/components/AdminLayout.tsx";
 
@@ -47,73 +46,107 @@ const ClientsManagement: React.FC = () => {
     return (
         <div className="flex flex-col min-h-screen">
             <Navbar />
-        <AdminLayout>
-            <div className="p-4 md:p-6 space-y-4">
+            <AdminLayout>
+                <div className="p-4 md:p-6 space-y-4">
 
-                <Card>
-                    <CardHeader className="flex items-center justify-between">
-                        <CardTitle>Clients</CardTitle>
-                        <div className="flex items-center gap-2 w-full md:w-96">
-                            <Search className="h-4 w-4 text-muted-foreground" />
-                            <Input
-                                placeholder="Search by username, email or role..."
-                                value={query}
-                                onChange={(e) => setQuery(e.target.value)}
-                            />
-                        </div>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="overflow-x-auto">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Username</TableHead>
-                                        <TableHead>Email</TableHead>
-                                        <TableHead>Role</TableHead>
-                                        <TableHead>Created</TableHead>
-                                        <TableHead>Orders</TableHead>
-                                        <TableHead className="text-right">Actions</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {loading ? (
+                    <Card>
+                        <CardHeader className="flex items-center justify-between">
+                            <CardTitle>Clients</CardTitle>
+                            <div className="flex items-center gap-2 w-full md:w-96">
+                                <Search className="h-4 w-4 text-muted-foreground" />
+                                <Input
+                                    placeholder="Search by username, email or role..."
+                                    value={query}
+                                    onChange={(e) => setQuery(e.target.value)}
+                                />
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="overflow-x-auto">
+                                <Table>
+                                    <TableHeader>
                                         <TableRow>
-                                            <TableCell colSpan={6} className="text-center py-8">Loading...</TableCell>
+                                            <TableHead>Username</TableHead>
+                                            <TableHead>Email</TableHead>
+                                            <TableHead>Role</TableHead>
+                                            <TableHead>Created</TableHead>
+                                            <TableHead>Status</TableHead>
+                                            <TableHead>Orders</TableHead>
+                                            <TableHead className="text-right">Actions</TableHead>
                                         </TableRow>
-                                    ) : filtered.length === 0 ? (
-                                        <TableRow>
-                                            <TableCell colSpan={6} className="text-center py-8">No results</TableCell>
-                                        </TableRow>
-                                    ) : (
-                                        filtered.map(c => (
-                                            <TableRow key={c.id}>
-                                                <TableCell className="font-medium">{c.username}</TableCell>
-                                                <TableCell>{c.email}</TableCell>
-                                                <TableCell>
-                                                    <Badge variant={c.role === 'admin' ? 'default' : 'secondary'}>
-                                                        {c.role}
-                                                    </Badge>
-                                                </TableCell>
-                                                <TableCell>{c.created_at ? new Date(c.created_at).toLocaleDateString() : '-'}</TableCell>
-                                                <TableCell>
-                                                    <Badge variant="secondary">{c.ordersCount ?? 0}</Badge>
-                                                </TableCell>
-                                                <TableCell className="text-right">
-                                                    <Button size="sm" variant="outline" onClick={() => navigate(`/admin/clients/${c.id}`)}>
-                                                        View
-                                                    </Button>
-                                                </TableCell>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {loading ? (
+                                            <TableRow>
+                                                <TableCell colSpan={7} className="text-center py-8">Loading...</TableCell>
                                             </TableRow>
-                                        ))
-                                    )}
-                                </TableBody>
-                            </Table>
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
-        </AdminLayout>
-    </div>
+                                        ) : filtered.length === 0 ? (
+                                            <TableRow>
+                                                <TableCell colSpan={7} className="text-center py-8">No results</TableCell>
+                                            </TableRow>
+                                        ) : (
+                                            filtered.map(c => (
+                                                <TableRow key={c.id}>
+                                                    <TableCell className="font-medium">{c.username}</TableCell>
+                                                    <TableCell>{c.email}</TableCell>
+                                                    <TableCell>
+                                                        <Badge variant={c.role === 'admin' ? 'default' : 'secondary'}>
+                                                            {c.role}
+                                                        </Badge>
+                                                    </TableCell>
+                                                    <TableCell>{c.created_at ? new Date(c.created_at).toLocaleDateString() : '-'}</TableCell>
+                                                    <TableCell>
+                                                        <Badge variant={c.status === 'active' ? 'default' : 'destructive'}>
+                                                            {c.status}
+                                                        </Badge>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Badge variant="secondary">{c.ordersCount ?? 0}</Badge>
+                                                    </TableCell>
+                                                    <TableCell className="text-right">
+                                                        <div className="flex justify-end gap-2">
+                                                            <Button size="sm" variant="outline" onClick={() => navigate(`/admin/clients/${c.id}`)}>
+                                                                View
+                                                            </Button>
+                                                            <Button
+                                                                size="sm"
+                                                                variant={c.status === 'active' ? 'destructive' : 'default'}
+                                                                onClick={async () => {
+                                                                    const success = await toggleUserStatus(c.id, c.status === 'active' ? 'inactive' : 'active');
+                                                                    if (success) {
+                                                                        setClients(prev => prev.map(client =>
+                                                                            client.id === c.id
+                                                                                ? {...client, status: c.status === 'active' ? 'inactive' : 'active'}
+                                                                                : client
+                                                                        ));
+                                                                        toast({
+                                                                            title: 'Success',
+                                                                            description: `User ${c.status === 'active' ? 'deactivated' : 'activated'} successfully`
+                                                                        });
+                                                                    } else {
+                                                                        toast({
+                                                                            title: 'Error',
+                                                                            description: 'Failed to update user status',
+                                                                            variant: 'destructive'
+                                                                        });
+                                                                    }
+                                                                }}
+                                                            >
+                                                                {c.status === 'active' ? 'Deactivate' : 'Activate'}
+                                                            </Button>
+                                                        </div>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            </AdminLayout>
+        </div>
 
     );
 };

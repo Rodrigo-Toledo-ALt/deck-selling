@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Search } from 'lucide-react';
 import AdminLayout from '@/components/AdminLayout.tsx';
 import { supabase } from '@/supabase/supabase-client.ts';
+import Navbar from "@/components/Navbar.tsx";
 
 export interface Order {
     id: string;
@@ -69,6 +70,8 @@ const OrdersManagement: React.FC = () => {
     });
 
     return (
+        <div className="flex flex-col min-h-screen">
+        <Navbar />
         <AdminLayout>
             <div className="p-4 md:p-6 space-y-4">
                 <Card>
@@ -145,6 +148,7 @@ const OrdersManagement: React.FC = () => {
                 </Card>
             </div>
         </AdminLayout>
+    </div>
     );
 };
 

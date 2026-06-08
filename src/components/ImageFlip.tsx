@@ -6,9 +6,9 @@ interface ImageFlipProps {
     alt1?: string;
     alt2?: string;
     className?: string;
-    duration?: string; // "duration-700"
-    isFlipped?: boolean; // control externo
-    onToggle?: () => void; // callback si quieres manejar el click desde fuera
+    duration?: string;
+    isFlipped?: boolean;
+    onToggle?: () => void;
 }
 
 const ImageFlip: React.FC<ImageFlipProps> = ({
@@ -36,17 +36,19 @@ const ImageFlip: React.FC<ImageFlipProps> = ({
         <div className={`perspective-1000 ${className}`}>
             <div
                 className={`
-          relative w-full h-full transform-style-preserve-3d transition-transform ${duration} ease-in-out cursor-pointer
-          ${flipped ? "rotate-y-180" : ""}
-        `}
+                    relative w-full h-full transform-style-preserve-3d transition-transform ${duration} ease-in-out cursor-pointer
+                    ${flipped ? "rotate-y-180" : ""}
+                `}
                 onClick={handleFlip}
             >
                 <div className="absolute inset-0 w-full h-full backface-hidden">
                     <img
                         src={frontImage}
                         alt={alt1}
-                        className="w-full h-full object-cover rounded-lg shadow-lg"
+                        className="w-full h-full object-contain rounded-lg shadow-lg"
                         draggable={false}
+                        loading="eager"
+                        decoding="async"
                     />
                 </div>
 
@@ -54,8 +56,10 @@ const ImageFlip: React.FC<ImageFlipProps> = ({
                     <img
                         src={backImage}
                         alt={alt2}
-                        className="w-full h-full object-cover rounded-lg shadow-lg"
+                        className="w-full h-full object-contain rounded-lg shadow-lg"
                         draggable={false}
+                        loading="eager"
+                        decoding="async"
                     />
                 </div>
             </div>

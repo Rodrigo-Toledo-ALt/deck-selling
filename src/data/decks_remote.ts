@@ -42,6 +42,7 @@ export interface Deck {
     author_name?: string | null;
     author_website?: string | null;
     created_at?: string;
+    is_visible: boolean;
 }
 
 type ProductRow = {
@@ -56,6 +57,7 @@ type ProductRow = {
     author_name: string | null;
     author_website: string | null;
     created_at: string | null;
+    is_visible: boolean;
 };
 
 function parseColors(input: string | null | undefined): DeckColor[] {
@@ -78,7 +80,8 @@ const baseSelect = `
   format,
   author_name,
   author_website,
-  created_at
+  created_at,
+  is_visible
 `;
 
 function mapProductToDeck(row: ProductRow): Deck | null {
@@ -111,6 +114,7 @@ function mapProductToDeck(row: ProductRow): Deck | null {
         author_name: row.author_name,
         author_website: row.author_website,
         created_at: row.created_at ?? undefined,
+        is_visible: !!row.is_visible,
     };
 }
 
@@ -138,11 +142,32 @@ export async function getSignedCardImageUrl(path: string, ttlSeconds = 3600): Pr
     return data?.signedUrl ?? '';
 }
 
+export const getAllDecks = async (includeInvisible = false): Promise<Deck[]> => {
+    let query = supabase
+        .from('products')
+        .select(baseSelect)
+        .eq('format', 'Commander')
+        .order('created_at', { ascending: false });
+
+    if (!includeInvisible) {
+        query = query.eq('is_visible', true);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+        console.error('getAllDecks error:', error);
+        return [];
+    }
+    return (data ?? []).map(mapProductToDeck).filter(Boolean) as Deck[];
+};
+
 export const getFeaturedDecks = async (): Promise<Deck[]> => {
     const { data, error } = await supabase
         .from('products')
         .select(baseSelect)
         .eq('format', 'Commander')
+        .eq('is_visible', true)
         .order('created_at', { ascending: false })
         .limit(6);
 
@@ -153,26 +178,17 @@ export const getFeaturedDecks = async (): Promise<Deck[]> => {
     return (data ?? []).map(mapProductToDeck).filter(Boolean) as Deck[];
 };
 
-export const getAllDecks = async (): Promise<Deck[]> => {
-    const { data, error } = await supabase
+export const getDeckById = async (id: string, includeInvisible = false): Promise<Deck | undefined> => {
+    let query = supabase
         .from('products')
         .select(baseSelect)
-        .eq('format', 'Commander')
-        .order('created_at', { ascending: false });
+        .eq('id', id);
 
-    if (error) {
-        console.error('getAllDecks error:', error);
-        return [];
+    if (!includeInvisible) {
+        query = query.eq('is_visible', true);
     }
-    return (data ?? []).map(mapProductToDeck).filter(Boolean) as Deck[];
-};
 
-export const getDeckById = async (id: string): Promise<Deck | undefined> => {
-    const { data, error } = await supabase
-        .from('products')
-        .select(baseSelect)
-        .eq('id', id)
-        .single();
+    const { data, error } = await query.single();
 
     if (error) {
         console.error('getDeckById error:', error);
@@ -181,3 +197,35 @@ export const getDeckById = async (id: string): Promise<Deck | undefined> => {
     const deck = data ? mapProductToDeck(data as ProductRow) : null;
     return deck ?? undefined;
 };
+
+export const setDeckVisibility = async (id: string, isVisible: boolean): Promise<void> => {
+    const { error } = await supabase
+        .from('products')
+        .update({ is_visible: isVisible })
+        .eq('id', id);
+
+    if (error) {
+        console.error('setDeckVisibility error:', error);
+        throw error;
+    }
+};
+
+export async function deleteDeck(deckId: string): Promise<void> {
+    const { count, error: checkError } = await supabase
+        .from('order_items')
+        .select('id', { count: 'exact', head: true })
+        .eq('product_id', deckId);
+
+    if (checkError) throw checkError;
+
+    if ((count ?? 0) > 0) {
+        throw new Error('Este mazo no puede eliminarse porque tiene pedidos asociados.');
+    }
+
+    const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', deckId);
+
+    if (error) throw error;
+}

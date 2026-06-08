@@ -1,4 +1,3 @@
-// src/pages/Login.tsx
 import React from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
@@ -18,6 +17,7 @@ import { useToast } from '@/components/ui/use-toast.ts';
 import Navbar from '@/components/Navbar.tsx';
 import Footer from '@/components/Footer.tsx';
 import { useAuth } from "@/supabase/AuthProvider.tsx";
+import { supabase } from '@/lib/supabase';
 
 const loginSchema = z.object({
     email: z.string().email('Please enter a valid email'),
@@ -56,11 +56,30 @@ const Login = () => {
             }
 
             if (res.data?.session) {
+                // ✅ Verificar status del usuario
+                const { data: userData, error: userError } = await supabase
+                    .from('users')
+                    .select('status')
+                    .eq('id', res.data.session.user.id)
+                    .single();
+
+                if (userError || userData?.status !== 'active') {
+                    // Cerrar sesión inmediatamente
+                    await supabase.auth.signOut();
+
+                    toast({
+                        title: "Account Inactive",
+                        description: "Your account has been deactivated. Please contact support.",
+                        variant: "destructive",
+                    });
+                    setIsLoading(false);
+                    return;
+                }
+
                 toast({
                     title: "Login successful",
                     description: "Welcome back!",
                 });
-                // Si venía del carrito, redirige al carrito; si no, al home
                 navigate(redirectTo ? `/${redirectTo}` : '/');
                 return;
             }

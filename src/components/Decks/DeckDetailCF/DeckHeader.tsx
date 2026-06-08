@@ -24,13 +24,14 @@ const DeckHeader: React.FC<DeckHeaderProps> = ({ deck, imageUrl }) => {
             {/* Overlay púrpura */}
             <div className="absolute inset-0 z-10 bg-gradient-to-r from-secondary via-secondary to-slate-800/10"></div>
 
-            {/* Imagen principal del deck */}
-            <div className="absolute left-1/2 top-0 w-1/2 h-full overflow-hidden z-0">
+            {/* Imagen principal del deck (versión desplazable, mayor cobertura) */}
+            <div className="absolute left-[70%] top-0 w-1/2 h-full overflow-visible z-0 -translate-x-1/2 pointer-events-none">
                 {headerImage ? (
                     <img
                         src={headerImage}
                         alt={deck.name}
-                        className="deckheader-image min-w-full min-h-full object-cover"
+                        className="absolute left-1/2 top-0 -translate-x-1/2 min-h-[120%] w-auto object-cover"
+                        style={{ transformOrigin: 'top center', transform: 'translateY(-2rem)' }}
                         fetchPriority="high"
                     />
                 ) : (

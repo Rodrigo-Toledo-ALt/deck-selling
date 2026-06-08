@@ -5,14 +5,10 @@ import DeckCard from '@/components/Decks/DeckCard.tsx';
 import { Button } from '@/components/ui/button';
 import { Search, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import 'mana-font/css/mana.css';
 import { useNavigate } from 'react-router-dom';
-
-// NUEVO: importar desde decks_remote
 import { getAllDecks, getSignedMainImageUrl, Deck } from '@/data/decks_remote';
 
-const archetypeOptions = ['All', 'Aggro', 'Control', 'Combo', 'Midrange', 'Tempo', 'Stax', 'Tribal'];
 const colorOptions = ['Any', 'White', 'Blue', 'Black', 'Red', 'Green', 'Colorless'];
 
 const colorMap: Record<string, string> = {
@@ -41,10 +37,9 @@ const ColorIcon = ({ color, selected }: { color: string; selected: boolean }) =>
     );
 };
 
-type DeckWithSigned = Deck & { imageUrl?: string; archetype?: string };
+type DeckWithSigned = Deck & { imageUrl?: string };
 
 const Catalog = () => {
-    const [archetype, setArchetype] = useState('All');
     const [selectedColors, setSelectedColors] = useState<string[]>(['Any']);
     const [originalDecks, setOriginalDecks] = useState<DeckWithSigned[]>([]);
     const [filteredDecks, setFilteredDecks] = useState<DeckWithSigned[]>([]);
@@ -52,20 +47,16 @@ const Catalog = () => {
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
 
-    // 1) Cargar decks desde Supabase y resolver portada firmada
     useEffect(() => {
         let alive = true;
         (async () => {
             setLoading(true);
             try {
-                const decks = await getAllDecks(); // trae id, name, description, price, colors, format, main_image_path, deckData...
-                // Resolver signed URL de portada
+                const decks = await getAllDecks();
                 const urls = await Promise.all(decks.map((d) => getSignedMainImageUrl(d, 3600)));
                 const merged: DeckWithSigned[] = decks.map((d, i) => ({
                     ...d,
                     imageUrl: urls[i] || '',
-                    // Si tenías antes archetype en tu Deck local, aquí puedes derivarlo o dejar "Commander"
-                    archetype: 'Commander',
                 }));
                 if (!alive) return;
                 setOriginalDecks(merged);
@@ -76,34 +67,20 @@ const Catalog = () => {
                 if (alive) setLoading(false);
             }
         })();
-        return () => {
-            alive = false;
-        };
+        return () => { alive = false; };
     }, []);
 
-    // 2) Aplicar filtros y búsqueda sobre originalDecks
     useEffect(() => {
         let results = [...originalDecks];
 
-        if (archetype !== 'All') {
-            results = results.filter((deck) => deck.archetype === archetype);
-        }
-
         if (!selectedColors.includes('Any')) {
             results = results.filter((deck) => {
-                // Colorless
                 if (selectedColors.includes('Colorless')) {
-                    if (selectedColors.length === 1) {
-                        return deck.colors.length === 0;
-                    } else {
-                        return false;
-                    }
+                    return selectedColors.length === 1 ? deck.colors.length === 0 : false;
                 }
-                // Debe incluir todos los colores seleccionados
-                const deckColors = deck.colors;
                 return selectedColors.every((color) => {
                     const colorCode = colorMap[color];
-                    return colorCode && deckColors.includes(colorCode as any);
+                    return colorCode && deck.colors.includes(colorCode as any);
                 });
             });
         }
@@ -118,10 +95,9 @@ const Catalog = () => {
         }
 
         setFilteredDecks(results);
-    }, [archetype, selectedColors, searchQuery, originalDecks]);
+    }, [selectedColors, searchQuery, originalDecks]);
 
     const resetFilters = () => {
-        setArchetype('All');
         setSelectedColors(['Any']);
         setSearchQuery('');
     };
@@ -131,12 +107,10 @@ const Catalog = () => {
             setSelectedColors(['Any']);
             return;
         }
-
         if (selectedColors.includes('Any')) {
             setSelectedColors([color]);
             return;
         }
-
         if (selectedColors.includes(color)) {
             const newColors = selectedColors.filter((c) => c !== color);
             setSelectedColors(newColors.length === 0 ? ['Any'] : newColors);
@@ -176,50 +150,21 @@ const Catalog = () => {
                         </div>
 
                         <div className="mb-8">
-                            <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-6">
-                                {/* Color Filter - Left Side */}
-                                <div className="w-full md:w-1/2">
-                                    <h3 className="font-medium mb-3">Filter by Color</h3>
-                                    <div className="flex flex-wrap gap-3">
-                                        {colorOptions.map((color) => (
-                                            <button
-                                                key={color}
-                                                onClick={() => handleColorClick(color)}
-                                                className="focus:outline-none"
-                                                aria-label={`Filter by ${color}`}
-                                            >
-                                                <ColorIcon color={color} selected={selectedColors.includes(color)} />
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                {/* Archetype Filter - Right Side */}
-                                <div className="w-full md:w-1/2">
-                                    <h3 className="font-medium mb-3">Filter by Archetype</h3>
-                                    <ToggleGroup
-                                        type="single"
-                                        value={archetype}
-                                        onValueChange={(value) => {
-                                            if (value) setArchetype(value);
-                                        }}
-                                        className="flex flex-wrap gap-2"
+                            <h3 className="font-medium mb-3">Filter by Color</h3>
+                            <div className="flex flex-wrap gap-3">
+                                {colorOptions.map((color) => (
+                                    <button
+                                        key={color}
+                                        onClick={() => handleColorClick(color)}
+                                        className="focus:outline-none"
+                                        aria-label={`Filter by ${color}`}
                                     >
-                                        {archetypeOptions.map((option) => (
-                                            <ToggleGroupItem
-                                                key={option}
-                                                value={option}
-                                                variant={option === 'All' ? 'default' : 'outline'}
-                                                className={option === archetype ? 'bg-primary text-white' : ''}
-                                            >
-                                                {option}
-                                            </ToggleGroupItem>
-                                        ))}
-                                    </ToggleGroup>
-                                </div>
+                                        <ColorIcon color={color} selected={selectedColors.includes(color)} />
+                                    </button>
+                                ))}
                             </div>
 
-                            {(!selectedColors.includes('Any') || archetype !== 'All' || searchQuery) && (
+                            {(!selectedColors.includes('Any') || searchQuery) && (
                                 <div className="mt-6">
                                     <div className="flex items-center gap-2 mb-2">
                                         <h3 className="font-medium">Active Filters:</h3>
@@ -237,14 +182,6 @@ const Catalog = () => {
                                                     </button>
                                                 </Badge>
                                             ))}
-                                        {archetype !== 'All' && (
-                                            <Badge variant="secondary" className="flex items-center gap-1">
-                                                Archetype: {archetype}
-                                                <button onClick={() => setArchetype('All')}>
-                                                    <X size={14} className="ml-1" />
-                                                </button>
-                                            </Badge>
-                                        )}
                                         {searchQuery && (
                                             <Badge variant="secondary" className="flex items-center gap-1">
                                                 Search: {searchQuery}

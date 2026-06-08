@@ -7,7 +7,7 @@ import CardList from '@/components/Decks/DeckDetailCF/CardList';
 import ImageFlip from '@/components/ImageFlip';
 import { renderManaCost } from '@/utils/mana.tsx';
 import { Button } from '@/components/ui/button';
-import { ShoppingCart } from 'lucide-react';
+import { ShoppingCart, X } from 'lucide-react';
 import { useAuth } from '@/supabase/AuthProvider';
 import { addToCart } from '@/data/cart_remote';
 import { addToLocalCart } from '@/data/local_cart';
@@ -30,7 +30,7 @@ type DeckDataWithSigned = {
 
 const DeckDetail: React.FC = () => {
     const { id } = useParams();
-    const { user } = useAuth();
+    const { user, role } = useAuth();
     const { toast } = useToast();
 
     const [deck, setDeck] = useState<Deck | null>(null);
@@ -40,6 +40,8 @@ const DeckDetail: React.FC = () => {
     const [currentCard, setCurrentCard] = useState<CardInfoWithSigned | null>(null);
     const [isFlip, setIsFlip] = useState(false);
     const [isAdding, setIsAdding] = useState(false);
+    const [popupCard, setPopupCard] = useState<CardInfoWithSigned | null>(null);
+    const [popupFaceIndex, setPopupFaceIndex] = useState(0);
 
     const handleAddToCart = async () => {
         if (!deck) return;
@@ -77,7 +79,8 @@ const DeckDetail: React.FC = () => {
             }
             setLoading(true);
             try {
-                const d = await getDeckById(id);
+                const isAdmin = role === 'admin';
+                const d = await getDeckById(id, isAdmin);
                 if (!alive) return;
 
                 if (!d) {
@@ -150,10 +153,8 @@ const DeckDetail: React.FC = () => {
                 if (alive) setLoading(false);
             }
         })();
-        return () => {
-            alive = false;
-        };
-    }, [id]);
+        return () => { alive = false; };
+    }, [id, role]);
 
     const sections = useMemo(() => {
         const empty: { title: string; cards: CardInfoWithSigned[] }[] = [];
@@ -180,6 +181,16 @@ const DeckDetail: React.FC = () => {
         if (commander) {
             setCurrentCard({ ...commander, faces: [commander.faces[0]] });
         }
+    };
+
+    const handleCardClick = (card: CardInfoWithSigned) => {
+        setPopupCard(card);
+        setPopupFaceIndex(0);
+    };
+
+    const handleClosePopup = () => {
+        setPopupCard(null);
+        setPopupFaceIndex(0);
     };
 
     const handleFaceChange = (card: CardInfoWithSigned, activeFaceIndex: number) => {
@@ -222,15 +233,121 @@ const DeckDetail: React.FC = () => {
         <div className="min-h-screen bg-background/95 text-foreground">
             <Navbar />
 
+            {/* Card Popup Modal */}
+            {popupCard && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center p-4"
+                    onClick={handleClosePopup}
+                >
+                    <div className="absolute inset-0 bg-black/75 backdrop-blur-sm" />
+
+                    <div
+                        className="relative z-10 flex flex-col sm:flex-row gap-8 bg-card rounded-2xl shadow-2xl p-8 w-full border border-primary/40"
+                        style={{
+                            maxWidth: '1100px',
+                            boxShadow: '0 0 0 1px hsl(var(--primary) / 0.3), 0 0 60px hsl(var(--primary) / 0.2), 0 30px 60px rgba(0,0,0,0.7)',
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <button
+                            onClick={handleClosePopup}
+                            className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors rounded-full p-1.5 hover:bg-secondary"
+                        >
+                            <X className="w-5 h-5" />
+                        </button>
+
+                        {/* Card image */}
+                        <div className="flex flex-col items-center gap-3 shrink-0">
+                            <div
+                                className="rounded-xl shadow-2xl overflow-hidden"
+                                style={{
+                                    width: '420px',
+                                    aspectRatio: '5/7',
+                                    border: '3px solid #100c00',
+                                    backgroundColor: '#100c00',
+                                }}
+                            >
+                                <img
+                                    src={popupCard.faces[popupFaceIndex]?.signedUrl || ''}
+                                    alt={popupCard.name}
+                                    className="w-full h-full object-contain rounded-xl"
+                                    style={{ imageRendering: 'auto', display: 'block' }}
+                                />
+                            </div>
+                            {popupCard.faces.length > 1 && (
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={() => setPopupFaceIndex(0)}
+                                        className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${popupFaceIndex === 0 ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground hover:text-foreground'}`}
+                                    >
+                                        Front
+                                    </button>
+                                    <button
+                                        onClick={() => setPopupFaceIndex(1)}
+                                        className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${popupFaceIndex === 1 ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground hover:text-foreground'}`}
+                                    >
+                                        Back
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Card info */}
+                        <div className="flex flex-col gap-4 flex-1 min-w-0 pt-1">
+                            <div>
+                                <h2 className="text-3xl font-bold text-foreground leading-tight">{popupCard.name}</h2>
+                                <p className="text-base text-muted-foreground mt-1">{popupCard.faces[popupFaceIndex]?.typeLine || ''}</p>
+                            </div>
+
+                            <div className="flex items-center gap-1 flex-wrap">
+                                {renderManaCost(popupCard.faces[popupFaceIndex]?.manaCost)}
+                            </div>
+
+                            {popupCard.faces[popupFaceIndex]?.oracleText && (
+                                <div className="bg-secondary/60 rounded-lg p-4 border border-border/50">
+                                    <p className="text-sm text-foreground/90 whitespace-pre-line leading-relaxed">
+                                        {popupCard.faces[popupFaceIndex].oracleText}
+                                    </p>
+                                </div>
+                            )}
+
+                            {(popupCard.faces[popupFaceIndex]?.power || popupCard.faces[popupFaceIndex]?.toughness) && (
+                                <div className="flex items-center gap-2 mt-auto">
+                                    <span className="text-xs text-muted-foreground uppercase font-semibold">P/T</span>
+                                    <span className="bg-primary/10 border border-primary/30 text-primary font-bold px-3 py-1 rounded-full text-sm">
+                                        {popupCard.faces[popupFaceIndex]?.power}/{popupCard.faces[popupFaceIndex]?.toughness}
+                                    </span>
+                                </div>
+                            )}
+
+                            {popupCard.faces[popupFaceIndex]?.loyalty && (
+                                <div className="flex items-center gap-2 mt-auto">
+                                    <span className="text-xs text-muted-foreground uppercase font-semibold">Loyalty</span>
+                                    <span className="bg-primary/10 border border-primary/30 text-primary font-bold px-3 py-1 rounded-full text-sm">
+                                        {popupCard.faces[popupFaceIndex].loyalty}
+                                    </span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <main className="mx-auto px-4 py-6 w-full">
                 <DeckHeader deck={deck} imageUrl={signedMainImage} />
 
                 <div className="grid lg:grid-cols-4 gap-6">
-                    <div className="lg:col-span-1 ">
+                    <div className="lg:col-span-1">
                         <div className="sticky top-20 mt-4 space-y-4">
                             {/* Card Display Box */}
                             <div className="bg-secondary border-0 rounded-lg shadow-lg p-4 text-center">
-                                <div className="relative mx-auto w-full max-w-64 aspect-[5/7] rounded-lg overflow-hidden border-2 border-border shadow-lg">
+                                <div
+                                    className="relative mx-auto w-full max-w-64 aspect-[5/7] rounded-lg overflow-hidden"
+                                    style={{
+                                        border: '3px solid #100c00',
+                                        backgroundColor: '#100c00',
+                                    }}
+                                >
                                     <ImageFlip
                                         frontImage={currentCard?.faces[0].signedUrl || ''}
                                         backImage={currentCard?.faces[1]?.signedUrl || currentCard?.faces[0].signedUrl || ''}
@@ -248,7 +365,7 @@ const DeckDetail: React.FC = () => {
                                 </div>
                             </div>
 
-                            {/* Purchase Section - Now outside the secondary box */}
+                            {/* Purchase Section */}
                             <div className="bg-card border border-border rounded-lg p-4 shadow-md flex items-center justify-between gap-4">
                                 <div className="flex flex-col">
                                     <span className="text-xs text-muted-foreground uppercase font-semibold">Total Price</span>
@@ -277,6 +394,7 @@ const DeckDetail: React.FC = () => {
                                         onCardHover={handleCardHover}
                                         onCardLeave={handleCardLeave}
                                         onFaceChange={handleFaceChange}
+                                        onCardClick={handleCardClick}
                                     />
                                 </div>
                             ))}

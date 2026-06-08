@@ -38,7 +38,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return;
         }
 
-        // Solo ignorar si ya procesamos este usuario antes en esta sesión
         if (s.user.id === lastUserIdRef.current) {
             console.log("⏩ Ignorando evento duplicado para:", s.user.id);
             setLoading(false);
@@ -87,20 +86,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     useEffect(() => {
-        // Sesión inicial (restaurar al recargar)
-        supabase.auth.getSession().then(({ data, error }) => {
-            if (error) console.error("⚠️ Error en getSession:", error);
-            handleSession(data?.session ?? null, false);
-        });
-
         const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
-            if (event === 'SIGNED_IN') {
+            console.log('🔐 auth event:', event, s?.user?.id ?? 'no user');
+
+            if (event === 'INITIAL_SESSION') {
+                handleSession(s ?? null, false);
+            } else if (event === 'SIGNED_IN') {
                 handleSession(s, true);
             } else if (event === 'SIGNED_OUT') {
                 handleSession(null, false);
-            } else if (event === 'INITIAL_SESSION') {
-                // Ignorar — ya lo maneja getSession arriba
-                setLoading(false);
+            } else if (event === 'TOKEN_REFRESHED') {
+                handleSession(s, false);
             } else {
                 console.log('ℹ️ Ignorado auth event:', event);
             }

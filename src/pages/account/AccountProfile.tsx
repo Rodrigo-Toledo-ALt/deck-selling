@@ -1,12 +1,11 @@
-// src/pages/account/AccountProfile.tsx
 import React, { useEffect, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Pencil, Trash2, Star } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import {
     getMe,
@@ -22,6 +21,13 @@ import {
     type MyAddress,
 } from '@/data/account_remote';
 import Navbar from "@/components/Navbar.tsx";
+import { supabase } from '@/lib/supabase';
+
+type OrderShort = {
+    id: string;
+    order_date?: string | null;
+    total_amount?: number | null;
+};
 
 const AccountProfile: React.FC = () => {
     const { toast } = useToast();
@@ -32,6 +38,16 @@ const AccountProfile: React.FC = () => {
     const [username, setUsername] = useState('');
     const [emailDraft, setEmailDraft] = useState('');
     const [newPassword, setNewPassword] = useState('');
+
+    // Orders (for support ticket selection)
+    const [orders, setOrders] = useState<OrderShort[]>([]);
+    const [ordersLoading, setOrdersLoading] = useState(false);
+
+    // Support ticket state
+    const [selectedOrder, setSelectedOrder] = useState<string>('');
+    const [supportSubject, setSupportSubject] = useState('');
+    const [supportMessage, setSupportMessage] = useState('');
+    const [sendingSupport, setSendingSupport] = useState(false);
 
     // Address dialog state
     const [addrDialogOpen, setAddrDialogOpen] = useState(false);
@@ -44,6 +60,9 @@ const AccountProfile: React.FC = () => {
         postal_code: '',
         country: '',
     });
+
+    // Deactivate account dialog
+    const [showDeactivateDialog, setShowDeactivateDialog] = useState(false);
 
     useEffect(() => {
         (async () => {
@@ -58,7 +77,36 @@ const AccountProfile: React.FC = () => {
             setAddresses(addrs);
             setLoading(false);
         })();
+
+        // load orders separately
+        fetchMyOrders();
     }, []);
+
+    // Fetch user's orders for support dropdown
+    const fetchMyOrders = async () => {
+        try {
+            setOrdersLoading(true);
+            const { data: auth } = await supabase.auth.getUser();
+            const userId = auth.user?.id;
+            if (!userId) return;
+
+            const { data, error } = await supabase
+                .from('orders')
+                .select('id, order_date, total_amount')
+                .eq('user_id', userId)
+                .order('order_date', { ascending: false });
+
+            if (error) {
+                console.error('fetchMyOrders error:', error);
+                return;
+            }
+            setOrders((data ?? []) as OrderShort[]);
+        } catch (err) {
+            console.error('fetchMyOrders unexpected error:', err);
+        } finally {
+            setOrdersLoading(false);
+        }
+    };
 
     // PROFILE
     const onSaveProfile = async () => {
@@ -67,9 +115,9 @@ const AccountProfile: React.FC = () => {
             const ok = await updateMe({ username });
             if (!ok) throw new Error();
             setProfile(prev => (prev ? { ...prev, username } : prev));
-            toast({ title: 'Saved', description: 'Your profile has been updated.' });
+            toast({ title: 'Guardado', description: 'Tu perfil ha sido actualizado.' });
         } catch {
-            toast({ title: 'Error', description: 'Could not update profile.', variant: 'destructive' });
+            toast({ title: 'Error', description: 'No se pudo actualizar el perfil.', variant: 'destructive' });
         } finally {
             setSaving(false);
         }
@@ -81,11 +129,11 @@ const AccountProfile: React.FC = () => {
             const ok = await updateMyEmail(emailDraft);
             if (!ok) throw new Error();
             toast({
-                title: 'Email update requested',
-                description: 'Check your inbox to verify your new email address.',
+                title: 'Actualización de email solicitada',
+                description: 'Revisa tu bandeja de entrada para verificar el nuevo email.',
             });
         } catch {
-            toast({ title: 'Error', description: 'Could not update email.', variant: 'destructive' });
+            toast({ title: 'Error', description: 'No se pudo actualizar el email.', variant: 'destructive' });
         }
     };
 
@@ -95,10 +143,10 @@ const AccountProfile: React.FC = () => {
         try {
             const ok = await changeMyPassword(newPassword);
             if (!ok) throw new Error();
-            toast({ title: 'Password changed', description: 'Use your new password next time.' });
+            toast({ title: 'Contraseña cambiada', description: 'Usa tu nueva contraseña la próxima vez.' });
             setNewPassword('');
         } catch {
-            toast({ title: 'Error', description: 'Could not change password.', variant: 'destructive' });
+            toast({ title: 'Error', description: 'No se pudo cambiar la contraseña.', variant: 'destructive' });
         }
     };
 
@@ -118,27 +166,120 @@ const AccountProfile: React.FC = () => {
     };
     const onSetDefault = async (id: string) => {
         const ok = await setDefaultAddress(id);
-        if (ok) { toast({ title: 'Default address updated' }); await reloadAddresses(); }
-        else toast({ title: 'Error', description: 'Could not set default address', variant: 'destructive' });
+        if (ok) { toast({ title: 'Dirección por defecto actualizada' }); await reloadAddresses(); }
+        else toast({ title: 'Error', description: 'No se pudo establecer la dirección por defecto', variant: 'destructive' });
     };
     const submitAddress = async () => {
         let ok = false;
         if (addrEditing) {
             ok = await updateMyAddress(addrEditing.id, addrForm);
-            ok ? toast({ title: 'Address updated' }) : toast({ title: 'Error', description: 'Could not update address', variant: 'destructive' });
+            ok ? toast({ title: 'Dirección actualizada' }) : toast({ title: 'Error', description: 'No se pudo actualizar la dirección', variant: 'destructive' });
         } else {
             ok = await createMyAddress(addrForm);
-            ok ? toast({ title: 'Address added' }) : toast({ title: 'Error', description: 'Could not add address', variant: 'destructive' });
+            ok ? toast({ title: 'Dirección añadida' }) : toast({ title: 'Error', description: 'No se pudo añadir la dirección', variant: 'destructive' });
         }
         if (ok) await reloadAddresses();
         setAddrDialogOpen(false);
         setAddrEditing(null);
     };
     const removeAddress = async (id: string) => {
-        if (!confirm('Delete this address?')) return;
+        if (!confirm('¿Eliminar esta dirección?')) return;
         const ok = await deleteMyAddress(id);
-        if (ok) { toast({ title: 'Address deleted' }); await reloadAddresses(); }
-        else toast({ title: 'Error', description: 'Could not delete address', variant: 'destructive' });
+        if (ok) { toast({ title: 'Dirección eliminada' }); await reloadAddresses(); }
+        else toast({ title: 'Error', description: 'No se pudo eliminar la dirección', variant: 'destructive' });
+    };
+
+    // Deactivate account
+    const deactivateAccount = async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+
+        const { error } = await supabase
+            .from('users')
+            .update({
+                status: 'inactive',
+                inactivated_at: new Date().toISOString(),
+                deactivated_by: session.user.id,
+                deactivated_by_role: 'user'
+            })
+            .eq('id', session.user.id);
+
+        if (error) {
+            toast({
+                title: 'Error',
+                description: 'No se pudo desactivar la cuenta',
+                variant: 'destructive'
+            });
+        } else {
+            toast({
+                title: 'Cuenta desactivada',
+                description: 'Tu cuenta ha sido desactivada. Puedes contactar soporte para reactivarla.'
+            });
+            // Optional: sign out user
+            await supabase.auth.signOut();
+            window.location.href = '/';
+        }
+        setShowDeactivateDialog(false);
+    };
+
+    // Support ticket submission (creates support_tickets row and optionally triggers webhook)
+    const submitSupportTicket = async () => {
+        if (!supportSubject.trim() || !supportMessage.trim()) {
+            toast({ title: 'Faltan datos', description: 'Asunto y mensaje son obligatorios', variant: 'destructive' });
+            return;
+        }
+        try {
+            setSendingSupport(true);
+            const { data: auth } = await supabase.auth.getUser();
+            const userId = auth.user?.id;
+            if (!userId) {
+                toast({ title: 'Error', description: 'No estás autenticado', variant: 'destructive' });
+                setSendingSupport(false);
+                return;
+            }
+
+            const payload = {
+                user_id: userId,
+                order_id: selectedOrder || null,
+                subject: supportSubject,
+                message: supportMessage,
+                status: 'open',
+                created_at: new Date().toISOString()
+            };
+
+            const { error } = await supabase.from('support_tickets').insert([payload]);
+
+            if (error) {
+                console.error('create support ticket error:', error);
+                toast({ title: 'Error', description: 'No se pudo enviar la solicitud', variant: 'destructive' });
+            } else {
+                toast({ title: 'Solicitud enviada', description: 'Te contactaremos lo antes posible.' });
+                // Reset form
+                setSelectedOrder('');
+                setSupportSubject('');
+                setSupportMessage('');
+
+                // Opcional: disparar webhook a n8n para notificaciones (descomentar y sustituir URL)
+                /*
+                fetch('https://tu-n8n-webhook-url/webhook/support', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_email: auth.user.email,
+                        user_id: userId,
+                        order_id: selectedOrder,
+                        subject: supportSubject,
+                        message: supportMessage
+                    })
+                }).catch(err => console.error('n8n webhook error', err));
+                */
+            }
+        } catch (err) {
+            console.error('submitSupportTicket unexpected error:', err);
+            toast({ title: 'Error', description: 'Error inesperado al enviar la solicitud', variant: 'destructive' });
+        } finally {
+            setSendingSupport(false);
+        }
     };
 
     if (loading) return <div className="p-6 text-center">Loading...</div>;
@@ -180,7 +321,6 @@ const AccountProfile: React.FC = () => {
                     </CardContent>
                 </Card>
 
-                {/* ADDRESSES */}
                 {/* ADDRESSES */}
                 <Card>
                     <CardHeader><CardTitle>Addresses</CardTitle></CardHeader>
@@ -238,6 +378,50 @@ const AccountProfile: React.FC = () => {
                     </CardContent>
                 </Card>
 
+                {/* SUPPORT / CONTACT */}
+                <Card>
+                    <CardHeader><CardTitle>Soporte y Contacto</CardTitle></CardHeader>
+                    <CardContent className="space-y-4">
+                        <div>
+                            <Label>Pedido (opcional)</Label>
+                            <select
+                                className="w-full p-2 bg-background border rounded-md"
+                                value={selectedOrder}
+                                onChange={(e) => setSelectedOrder(e.target.value)}
+                            >
+                                <option value="">General / Ninguno</option>
+                                {orders.map(o => (
+                                    <option key={o.id} value={o.id}>
+                                        {`Pedido #${o.id.slice(0, 8)}${o.order_date ? ` - ${new Date(o.order_date).toLocaleDateString()}` : ''}`}
+                                    </option>
+                                ))}
+                            </select>
+                            {ordersLoading && <p className="text-xs text-muted-foreground mt-1">Cargando pedidos...</p>}
+                        </div>
+
+                        <div>
+                            <Label>Asunto</Label>
+                            <Input value={supportSubject} onChange={(e) => setSupportSubject(e.target.value)} placeholder="Ej: Cancelar pedido" />
+                        </div>
+
+                        <div>
+                            <Label>Mensaje</Label>
+                            <textarea
+                                className="w-full p-2 bg-background border rounded-md min-h-[100px]"
+                                value={supportMessage}
+                                onChange={(e) => setSupportMessage(e.target.value)}
+                                placeholder="Explícanos brevemente qué ha pasado..."
+                            />
+                        </div>
+
+                        <div className="flex justify-end">
+                            <Button onClick={submitSupportTicket} disabled={sendingSupport || !supportSubject.trim() || !supportMessage.trim()}>
+                                {sendingSupport ? 'Enviando...' : 'Enviar solicitud'}
+                            </Button>
+                        </div>
+                    </CardContent>
+                </Card>
+
                 {/* SECURITY */}
                 <Card>
                     <CardHeader><CardTitle>Security</CardTitle></CardHeader>
@@ -255,6 +439,25 @@ const AccountProfile: React.FC = () => {
                                 <Button variant="outline" onClick={onChangePassword} disabled={!newPassword}>Change</Button>
                             </div>
                         </div>
+
+                        {/* DEACTIVATE ACCOUNT SECTION */}
+                        <div className="border-t pt-4 mt-6">
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <h3 className="font-medium text-destructive">Deactivate Account</h3>
+                                    <p className="text-sm text-muted-foreground">
+                                        Deactivate your account permanently. You can contact support to reactivate it later.
+                                    </p>
+                                </div>
+                                <Button
+                                    variant="destructive"
+                                    onClick={() => setShowDeactivateDialog(true)}
+                                >
+                                    Deactivate Account
+                                </Button>
+                            </div>
+                        </div>
+
                         <p className="text-xs text-muted-foreground">
                             You can also use the logout button in the navigation bar to end your current session.
                         </p>
@@ -297,6 +500,32 @@ const AccountProfile: React.FC = () => {
                             <Button variant="outline" onClick={() => setAddrDialogOpen(false)}>Cancel</Button>
                             <Button onClick={submitAddress} disabled={!addrForm.address || !addrForm.city || !addrForm.postal_code || !addrForm.country}>
                                 {addrEditing ? 'Save' : 'Add'}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Deactivate Account Dialog */}
+                <Dialog open={showDeactivateDialog} onOpenChange={setShowDeactivateDialog}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Deactivate Account</DialogTitle>
+                            <DialogDescription>
+                                Are you sure you want to deactivate your account? This will:
+                                <ul className="list-disc pl-5 mt-2 space-y-1">
+                                    <li>Prevent you from logging in</li>
+                                    <li>Keep your order history for legal purposes</li>
+                                    <li>Stop all email communications</li>
+                                </ul>
+                                <p className="mt-2 font-medium">This action can be reversed by contacting support.</p>
+                            </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setShowDeactivateDialog(false)}>
+                                Cancel
+                            </Button>
+                            <Button variant="destructive" onClick={deactivateAccount}>
+                                Yes, Deactivate Account
                             </Button>
                         </DialogFooter>
                     </DialogContent>

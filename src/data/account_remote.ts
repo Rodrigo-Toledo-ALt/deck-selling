@@ -170,89 +170,34 @@ export async function deleteMyAddress(id: string): Promise<boolean> {
     return true;
 }
 
-// ======================================================
-// PAYMENT METHODS
-// ======================================================
 
-export interface MyPaymentMethod {
-    id: string;
-    card_type: string;
-    expiry_date: string;
-    billing_address_id: string;
-}
 
-export async function getMyPaymentMethods(): Promise<MyPaymentMethod[]> {
+
+export async function createSupportTicket(ticket: {
+    order_id?: string,
+    subject: string,
+    message: string
+}): Promise<boolean> {
     const { data: auth } = await supabase.auth.getUser();
-    const userId = auth.user?.id;
-    if (!userId) return [];
-
-    const { data, error } = await supabase
-        .from('payment_methods')
-        .select('id, card_type, expiry_date, billing_address_id')
-        .eq('user_id', userId)
-        .order('id', { ascending: true });
-
-    if (error) {
-        console.error('getMyPaymentMethods error:', error);
-        return [];
-    }
-
-    return data as MyPaymentMethod[];
-}
-
-export async function createMyPaymentMethod(
-    pm: Omit<MyPaymentMethod, 'id'>
-): Promise<boolean> {
-    const { data: auth } = await supabase.auth.getUser();
-    const userId = auth.user?.id;
-    if (!userId) return false;
+    if (!auth.user) return false;
 
     const { error } = await supabase
-        .from('payment_methods')
-        .insert([{ ...pm, user_id: userId }]);
+        .from('support_tickets')
+        .insert([{
+            user_id: auth.user.id,
+            ...ticket
+        }]);
 
     if (error) {
-        console.error('createMyPaymentMethod error:', error);
+        console.error('Error creating support ticket:', error);
         return false;
     }
-    return true;
-}
 
-export async function updateMyPaymentMethod(
-    id: string,
-    updates: Partial<Omit<MyPaymentMethod, 'id'>>
-): Promise<boolean> {
-    const { data: auth } = await supabase.auth.getUser();
-    const userId = auth.user?.id;
-    if (!userId) return false;
+    // OPCIONAL: Llamada a tu Webhook de n8n
+    // fetch('https://tu-n8n-aws.com/webhook/support', {
+    //    method: 'POST',
+    //    body: JSON.stringify({ user_email: auth.user.email, ...ticket })
+    // });
 
-    const { error } = await supabase
-        .from('payment_methods')
-        .update(updates)
-        .eq('id', id)
-        .eq('user_id', userId);
-
-    if (error) {
-        console.error('updateMyPaymentMethod error:', error);
-        return false;
-    }
-    return true;
-}
-
-export async function deleteMyPaymentMethod(id: string): Promise<boolean> {
-    const { data: auth } = await supabase.auth.getUser();
-    const userId = auth.user?.id;
-    if (!userId) return false;
-
-    const { error } = await supabase
-        .from('payment_methods')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', userId);
-
-    if (error) {
-        console.error('deleteMyPaymentMethod error:', error);
-        return false;
-    }
     return true;
 }

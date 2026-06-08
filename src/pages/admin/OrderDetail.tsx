@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/supabase/supabase-client.ts';
 import AdminLayout from '@/components/AdminLayout.tsx';
+import Navbar from "@/components/Navbar.tsx";
 
 const currency = (n: number) =>
     new Intl.NumberFormat(undefined, { style: 'currency', currency: 'EUR' }).format(n);
@@ -162,6 +163,8 @@ const OrderDetail: React.FC = () => {
     );
 
     return (
+        <div className="flex flex-col min-h-screen">
+            <Navbar />
         <AdminLayout>
             <div className="p-4 md:p-6 space-y-6">
 
@@ -342,6 +345,7 @@ const OrderDetail: React.FC = () => {
 
             </div>
         </AdminLayout>
+    </div>
     );
 };
 

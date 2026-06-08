@@ -1,53 +1,36 @@
-import React, { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/supabase/AuthProvider";
-import { useToast } from "@/components/ui/use-toast";
+// src/supabase/ProtectedAdminRoute.tsx
+import React from 'react';
+import { Navigate, useLocation } from 'react-router-dom';
+import { useAuth } from '@/supabase/AuthProvider';
 
 const ProtectedAdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { user, role, loading } = useAuth();
-    const { toast } = useToast();
-    const navigate = useNavigate();
+    const location = useLocation();
 
-    useEffect(() => {
-        if (!loading) {
-            if (!user) {
-                toast({
-                    title: "Not logged in",
-                    description: "Please log in to continue.",
-                    variant: "destructive",
-                });
-                navigate("/login", { replace: true });
-            } else if (role !== "admin") {
-                toast({
-                    title: "Access denied",
-                    description: "You must be an admin to view this page.",
-                    variant: "destructive",
-                });
-                navigate("/", { replace: true });
-            }
-        }
-    }, [user, role, loading, navigate, toast]);
-
-    // ⏳ Mientras se valida la sesión/rol mostramos un loader
+    // Esperamos a que Supabase restaure la sesión
     if (loading) {
-        return <div className="p-8">Loading...</div>;
+        return (
+            <div className="flex items-center justify-center h-screen text-muted-foreground">
+                Loading...
+            </div>
+        );
     }
 
-// ⚡ ojo aquí: si todavía no hay role (null) pero sí user, muestra loader en vez de cortar
+    // Sesión cargada pero rol todavía null (fetch en curso)
     if (user && role === null) {
-        return <div className="p-8">Loading role...</div>;
+        return (
+            <div className="flex items-center justify-center h-screen text-muted-foreground">
+                Loading...
+            </div>
+        );
     }
 
     if (!user) {
-        toast({ title: "Not logged in", description: "Please log in", variant:"destructive" });
-        navigate("/login", { replace: true });
-        return null;
+        return <Navigate to="/login" replace state={{ from: location }} />;
     }
 
-    if (role !== "admin") {
-        toast({ title: "Access denied", description: "You must be an admin", variant:"destructive" });
-        navigate("/", { replace: true });
-        return null;
+    if (role !== 'admin') {
+        return <Navigate to="/" replace />;
     }
 
     return <>{children}</>;

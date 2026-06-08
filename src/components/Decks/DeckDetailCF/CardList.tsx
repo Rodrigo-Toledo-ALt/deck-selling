@@ -3,24 +3,24 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.t
 import { CardInfo } from "@/data/deckData.ts";
 import { renderManaCost } from "@/utils/mana.tsx";
 import { GiReturnArrow } from "react-icons/gi";
-    
+
 
 interface CardListProps {
     title: string;
     cards: CardInfo[];
     onCardHover: (card: CardInfo) => void;
     onCardLeave: () => void;
-    onFaceChange?: (card: CardInfo, activeFaceIndex: number) => void; // nuevo
+    onFaceChange?: (card: CardInfo, activeFaceIndex: number) => void;
+    onCardClick?: (card: CardInfo) => void;
 }
 
-const CardList = ({ title, cards, onCardHover, onCardLeave, onFaceChange }: CardListProps) => {
+const CardList = ({ title, cards, onCardHover, onCardLeave, onFaceChange, onCardClick }: CardListProps) => {
     const [activeFaces, setActiveFaces] = useState<{ [cardIndex: number]: number }>({});
 
     const toggleFace = (cardIndex: number, facesCount: number) => {
         setActiveFaces((prev) => {
             const currentFace = prev[cardIndex] ?? 0;
             const nextFace = (currentFace + 1) % facesCount;
-            // Notificar al padre qué carta y cuál cara quedó activa
             onFaceChange?.(cards[cardIndex], nextFace);
             return { ...prev, [cardIndex]: nextFace };
         });
@@ -45,16 +45,16 @@ const CardList = ({ title, cards, onCardHover, onCardLeave, onFaceChange }: Card
                                 className="flex items-center justify-between py-1 px-2 rounded text-sm hover:bg-accent cursor-pointer transition-colors border-t"
                                 onMouseEnter={() => {
                                     onCardHover(card);
-                                    // Alinear cara activa en el padre mientras se hace hover
                                     onFaceChange?.(card, activeFaceIndex);
                                 }}
                                 onMouseLeave={onCardLeave}
+                                onClick={() => onCardClick?.(card)}
                             >
                                 <div className="flex items-center gap-2 flex-1">
                                     <span className="text-muted-foreground w-4">{card.quantity}</span>
                                     <span className="text-foreground hover:text-primary transition-colors">
-                    {card.name}
-                  </span>
+                                        {card.name}
+                                    </span>
                                 </div>
                                 <div className="flex items-center gap-1">
                                     {renderManaCost(face.manaCost)}

@@ -8,6 +8,10 @@ export interface UserRow {
     role: 'customer' | 'admin';
     created_at: string | null;
     birthdate: string | null;
+    status: 'active' | 'inactive';
+    inactivated_at?: string | null;
+    deactivated_by?: string | null;
+    deactivated_by_role?: 'user' | 'admin' | 'system' | null;
 }
 
 export interface Address {
@@ -27,10 +31,10 @@ export interface PaymentMethod {
 
 export interface OrderItem {
     id: string;
-    product_id: string;
-    product_name: string;
-    quantity: number;
-    price: number;
+    product_id?: string | null;
+    product_name?: string | null;
+    quantity?: number | null;
+    price?: number | null;
 }
 
 export interface Order {
@@ -48,6 +52,10 @@ export interface Client {
     created_at?: string;
     birthdate?: string | null;
     ordersCount?: number;
+    status: 'active' | 'inactive';
+    inactivated_at?: string | null;
+    deactivated_by?: string | null;
+    deactivated_by_role?: 'user' | 'admin' | 'system' | null;
 }
 
 export interface ClientDetail {
@@ -60,12 +68,19 @@ export interface ClientDetail {
     addresses: Address[];
     payment_methods: PaymentMethod[];
     orders: Order[];
+    status: 'active' | 'inactive';
+    inactivated_at?: string | null;
+    deactivated_by?: string | null;
+    deactivated_by_role?: 'user' | 'admin' | 'system' | null;
 }
 
 const userBaseSelect = `
-  id, username, email, role, created_at, birthdate
+  id, username, email, role, created_at, birthdate, status, inactivated_at, deactivated_by, deactivated_by_role
 `;
 
+/**
+ * getAllClients - sin cambios
+ */
 export async function getAllClients(): Promise<Client[]> {
     const { data: users, error: usersErr } = await supabase.from('users').select(userBaseSelect);
     if (usersErr) {
@@ -95,9 +110,19 @@ export async function getAllClients(): Promise<Client[]> {
         created_at: u.created_at ?? undefined,
         birthdate: u.birthdate,
         ordersCount: ordersByUser.get(u.id) ?? 0,
+        status: u.status,
+        inactivated_at: u.inactivated_at,
+        deactivated_by: u.deactivated_by,
+        deactivated_by_role: u.deactivated_by_role,
     }));
 }
 
+/**
+ * getClientById
+ * - trae user, addresses, payment_methods, orders
+ * - por cada order trae order_items + product (products.name)
+ * - normaliza cada item para exponer product_name
+ */
 export async function getClientById(id: string): Promise<ClientDetail | undefined> {
     // Usuario
     const { data: user, error: userErr } = await supabase
@@ -124,7 +149,7 @@ export async function getClientById(id: string): Promise<ClientDetail | undefine
         .eq('user_id', id);
     if (pmErr) console.error('payment_methods error:', pmErr);
 
-    // Pedidos
+    // Pedidos (orders)
     const { data: orders, error: ordersErr } = await supabase
         .from('orders')
         .select('id, order_date, total_amount')
@@ -132,26 +157,34 @@ export async function getClientById(id: string): Promise<ClientDetail | undefine
         .order('order_date', { ascending: false });
     if (ordersErr) console.error('orders error:', ordersErr);
 
+    // Si no hay pedidos, devolvemos vacío en orders
     const orderIds = (orders ?? []).map((o: any) => o.id);
     const itemsByOrder = new Map<string, OrderItem[]>();
 
     if (orderIds.length > 0) {
+        // IMPORTANTE: pedimos order_items e incluimos product: products(name)
+        // Ajusta 'products(name)' si tu tabla products usa otra columna (p.ej. title)
         const { data: items, error: itemsErr } = await supabase
             .from('order_items')
-            .select('id, order_id, product_id, quantity, price, products(name)')
+            .select('id, order_id, product_id, quantity, price, product:products(name)')
             .in('order_id', orderIds);
 
         if (itemsErr) {
             console.error('order_items error:', itemsErr);
         } else {
             for (const it of items ?? []) {
+                const productName =
+                    (it.product && (it.product.name ?? it.product.title ?? null)) ??
+                    null;
+
                 const entry: OrderItem = {
                     id: it.id,
-                    product_id: it.product_id,
-                    product_name: it.products?.name ?? '(unknown)',
-                    quantity: it.quantity,
-                    price: Number(it.price),
+                    product_id: it.product_id ?? null,
+                    product_name: productName ?? '(unknown)',
+                    quantity: typeof it.quantity === 'number' ? it.quantity : Number(it.quantity ?? 0),
+                    price: it.price !== null && it.price !== undefined ? Number(it.price) : 0,
                 };
+
                 const arr = itemsByOrder.get(it.order_id) ?? [];
                 arr.push(entry);
                 itemsByOrder.set(it.order_id, arr);
@@ -161,8 +194,8 @@ export async function getClientById(id: string): Promise<ClientDetail | undefine
 
     const ordersEnriched: Order[] = (orders ?? []).map((o: any) => ({
         id: o.id,
-        order_date: o.order_date,
-        total_amount: Number(o.total_amount),
+        order_date: o.order_date ?? null,
+        total_amount: Number(o.total_amount ?? 0),
         items: itemsByOrder.get(o.id) ?? [],
     }));
 
@@ -180,5 +213,48 @@ export async function getClientById(id: string): Promise<ClientDetail | undefine
             expiry_date: pm.expiry_date,
         })),
         orders: ordersEnriched,
+        status: user.status,
+        inactivated_at: user.inactivated_at,
+        deactivated_by: user.deactivated_by,
+        deactivated_by_role: user.deactivated_by_role,
     };
+}
+
+/**
+ * toggleUserStatus - sin cambios
+ */
+export async function toggleUserStatus(userId: string, newStatus: 'active' | 'inactive'): Promise<boolean> {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return false;
+
+    // Verificar que el usuario actual sea admin
+    const { data: currentUser } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', session.user.id)
+        .single();
+
+    if (currentUser?.role !== 'admin') {
+        console.error('Unauthorized: Only admins can toggle user status');
+        return false;
+    }
+
+    const updates: any = {
+        status: newStatus,
+        inactivated_at: newStatus === 'inactive' ? new Date().toISOString() : null,
+        deactivated_by: newStatus === 'inactive' ? session.user.id : null,
+        deactivated_by_role: newStatus === 'inactive' ? 'admin' : null
+    };
+
+    const { error } = await supabase
+        .from('users')
+        .update(updates)
+        .eq('id', userId);
+
+    if (error) {
+        console.error('toggleUserStatus error:', error);
+        return false;
+    }
+
+    return true;
 }

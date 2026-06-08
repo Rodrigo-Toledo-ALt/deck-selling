@@ -26,7 +26,6 @@ const Navbar = () => {
     const isAuthenticated = !!user;
     const navigate = useNavigate();
 
-    // ── Carrito local (anon) ──────────────────────────────────────────
     useEffect(() => {
         if (isAuthenticated) return;
         const refresh = () => setLocalItems(loadLocalCart());
@@ -39,7 +38,6 @@ const Navbar = () => {
         };
     }, [isAuthenticated]);
 
-    // ── Carrito remoto (loggeado) ─────────────────────────────────────
     const fetchRemoteCount = useCallback(async () => {
         if (!user) return;
         try {
@@ -81,7 +79,6 @@ const Navbar = () => {
         };
     }, [isAuthenticated, fetchRemoteCount]);
 
-    // ── Animación sidebar ─────────────────────────────────────────────
     useEffect(() => {
         if (cartOpen) {
             requestAnimationFrame(() => requestAnimationFrame(() => setCartVisible(true)));
@@ -197,21 +194,22 @@ const Navbar = () => {
                                     <Link to="/login" className="text-foreground hover:text-primary transition-colors">Sign in</Link>
                                     <Link to="/register" className="text-foreground hover:text-primary transition-colors">Register</Link>
                                 </>
-                            ) : role === "admin" ? (
-                                <>
-                                    <Link to="/admin/decks" className="flex items-center text-foreground hover:text-primary transition-colors">
-                                        <LayoutDashboard className="h-5 w-5 mr-1" />
-                                        <span>Admin Dashboard</span>
-                                    </Link>
-                                    <LogoutButton />
-                                </>
                             ) : (
                                 <>
+                                    {/* ✅ All authenticated users (including admins) keep access to Cart and Account */}
                                     <CartButton />
                                     <Link to="/account" className="flex items-center text-foreground hover:text-primary transition-colors">
                                         <UserCircle className="h-5 w-5 mr-1" />
                                         <span>My Account</span>
                                     </Link>
+
+                                    {role === "admin" && (
+                                        <Link to="/admin/decks" className="flex items-center text-foreground hover:text-primary transition-colors">
+                                            <LayoutDashboard className="h-5 w-5 mr-1" />
+                                            <span>Admin Dashboard</span>
+                                        </Link>
+                                    )}
+
                                     <LogoutButton />
                                 </>
                             )}
@@ -241,14 +239,6 @@ const Navbar = () => {
                                     <Link to="/login" className="text-foreground hover:text-primary transition-colors" onClick={() => setIsMenuOpen(false)}>Sign in</Link>
                                     <Link to="/register" className="text-foreground hover:text-primary transition-colors" onClick={() => setIsMenuOpen(false)}>Register</Link>
                                 </>
-                            ) : role === "admin" ? (
-                                <>
-                                    <Link to="/admin/decks" className="flex items-center text-foreground hover:text-primary transition-colors" onClick={() => setIsMenuOpen(false)}>
-                                        <LayoutDashboard className="h-5 w-5 mr-1" />
-                                        <span>Admin Dashboard</span>
-                                    </Link>
-                                    <LogoutButton className="mt-1" />
-                                </>
                             ) : (
                                 <>
                                     <CartButton onClick={() => { setIsMenuOpen(false); navigate('/cart'); }} />
@@ -256,6 +246,14 @@ const Navbar = () => {
                                         <UserCircle className="h-5 w-5 mr-1" />
                                         <span>My Account</span>
                                     </Link>
+
+                                    {role === "admin" && (
+                                        <Link to="/admin/decks" className="flex items-center text-foreground hover:text-primary transition-colors" onClick={() => setIsMenuOpen(false)}>
+                                            <LayoutDashboard className="h-5 w-5 mr-1" />
+                                            <span>Admin Dashboard</span>
+                                        </Link>
+                                    )}
+
                                     <LogoutButton className="mt-1" />
                                 </>
                             )}
@@ -276,7 +274,6 @@ const Navbar = () => {
                         className="relative w-80 max-w-full h-full bg-background border-l border-border flex flex-col shadow-2xl transition-transform duration-300 ease-out"
                         style={{ transform: cartVisible ? 'translateX(0)' : 'translateX(100%)' }}
                     >
-                        {/* Header */}
                         <div className="flex items-center justify-between px-4 py-4 border-b border-border">
                             <h2 className="font-semibold text-lg flex items-center gap-2">
                                 <ShoppingCart className="h-5 w-5" />
@@ -292,7 +289,6 @@ const Navbar = () => {
                             </button>
                         </div>
 
-                        {/* Items */}
                         <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
                             {localItems.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-3 py-12">
@@ -329,7 +325,6 @@ const Navbar = () => {
                             )}
                         </div>
 
-                        {/* Footer */}
                         <div className="px-4 py-4 border-t border-border space-y-3">
                             {localItems.length > 0 && (
                                 <div className="flex justify-between text-sm font-semibold">
